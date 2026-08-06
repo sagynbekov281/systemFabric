@@ -1,0 +1,76 @@
+from datetime import date
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from .. import models, schemas, auth
+from ..database import get_db
+
+router = APIRouter(prefix="/api/production", tags=["production"])
+
+
+def _to_out(r: models.ProductionRecord) -> schemas.ProductionOut:
+    return schemas.ProductionOut(
+        id=r.id,
+        product_id=r.product_id,
+        product_name=r.product.name if r.product else None,
+        quantity=r.quantity,
+        record_date=r.record_date,
+        note=r.note,
+        created_by=r.created_by,
+        created_by_name=r.created_by_user.full_name if r.created_by_user else None,
+        created_at=r.created_at,
+    )
+
+
+@router.get("/", response_model=List[schemas.ProductionOut])
+def list_production(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    product_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    _=Depends(auth.get_current_user),
+):
+    query = db.query(models.ProductionRecord)
+    if date_from:
+        query = query.filter(models.ProductionRecord.record_date >= date_from)
+    if date_to:
+        query = query.filter(models.ProductionRecord.record_date <= date_to)
+    if product_id:
+        query = query.filter(models.ProductionRecord.product_id == product_id)
+    records = query.order_by(models.ProductionRecord.record_date.desc(), models.ProductionRecord.id.desc()).all()
+    return [_to_out(r) for r in records]
+
+
+@router.post("/", response_model=schemas.ProductionOut)
+def create_production(
+    payload: schemas.ProductionCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(auth.get_current_user),
+):
+    product = db.query(models.Product).filter(models.Product.id == payload.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар табылган жок")
+    record = models.ProductionRecord(
+        product_id=payload.product_id,
+        quantity=payload.quantity,
+        record_date=payload.record_date or date.today(),
+        note=payload.note,
+        created_by=current_user.id,
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return _to_out(record)
+
+
+@router.delete("/{record_id}")
+def delete_production(record_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user)):
+    record = db.query(models.ProductionRecord).filter(models.ProductionRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Жазуу табылган жок")
+    if current_user.role != models.UserRole.admin and record.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Бул жазууну өчүрүүгө укугуңуз жок")
+    db.delete(record)
+    db.commit()
+    return {"ok": True}

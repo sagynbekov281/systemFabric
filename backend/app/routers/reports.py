@@ -1,0 +1,111 @@
+from datetime import date, timedelta
+from typing import List, Optional
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+from .. import models, schemas, auth
+from ..database import get_db
+
+router = APIRouter(prefix="/api/reports", tags=["reports"])
+
+
+@router.get("/dashboard", response_model=schemas.DashboardSummary)
+def dashboard(db: Session = Depends(get_db), _=Depends(auth.get_current_user)):
+    today = date.today()
+    total_products = db.query(models.Product).filter(models.Product.is_active == True).count()  # noqa
+
+    today_produced = db.query(func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0)).filter(
+        models.ProductionRecord.record_date == today
+    ).scalar()
+    today_sold_row = db.query(
+        func.coalesce(func.sum(models.SaleRecord.quantity), 0.0),
+        func.coalesce(func.sum(models.SaleRecord.quantity * func.coalesce(models.SaleRecord.price, 0)), 0.0),
+    ).filter(models.SaleRecord.record_date == today).first()
+    today_sold, today_revenue = today_sold_row
+
+    products = db.query(models.Product).filter(models.Product.is_active == True).all()  # noqa
+    stock_list = []
+    total_stock = 0.0
+    for p in products:
+        produced = db.query(func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0)).filter(
+            models.ProductionRecord.product_id == p.id
+        ).scalar()
+        sold = db.query(func.coalesce(func.sum(models.SaleRecord.quantity), 0.0)).filter(
+            models.SaleRecord.product_id == p.id
+        ).scalar()
+        stock = float(produced) - float(sold)
+        total_stock += stock
+        item = schemas.ProductWithStock.model_validate(p)
+        item.stock = stock
+        stock_list.append(item)
+
+    low_stock = sorted(stock_list, key=lambda x: x.stock)[:5]
+
+    return schemas.DashboardSummary(
+        total_products=total_products,
+        today_produced=float(today_produced),
+        today_sold=float(today_sold),
+        today_revenue=float(today_revenue),
+        total_stock=total_stock,
+        low_stock_products=low_stock,
+    )
+
+
+@router.get("/summary")
+def summary_report(
+    date_from: date = Query(...),
+    date_to: date = Query(...),
+    group_by: str = Query("day", pattern="^(day|week|month|year)$"),
+    db: Session = Depends(get_db),
+    _=Depends(auth.get_current_user),
+):
+    """
+    Күндүк / жумалык / айлык / жылдык отчет.
+    Ар бир продукт боюнча ошол мезгилдеги өндүрүш, сатуу жана киреше.
+    """
+    products = db.query(models.Product).all()
+    product_map = {p.id: p for p in products}
+
+    production_rows = db.query(models.ProductionRecord).filter(
+        models.ProductionRecord.record_date >= date_from,
+        models.ProductionRecord.record_date <= date_to,
+    ).all()
+    sale_rows = db.query(models.SaleRecord).filter(
+        models.SaleRecord.record_date >= date_from,
+        models.SaleRecord.record_date <= date_to,
+    ).all()
+
+    def period_key(d: date) -> str:
+        if group_by == "day":
+            return d.isoformat()
+        if group_by == "week":
+            iso = d.isocalendar()
+            return f"{iso[0]}-W{iso[1]:02d}"
+        if group_by == "month":
+            return f"{d.year}-{d.month:02d}"
+        return str(d.year)
+
+    agg = {}  # (period, product_id) -> {produced, sold, revenue}
+    for r in production_rows:
+        key = (period_key(r.record_date), r.product_id)
+        agg.setdefault(key, {"produced": 0.0, "sold": 0.0, "revenue": 0.0})
+        agg[key]["produced"] += r.quantity
+    for r in sale_rows:
+        key = (period_key(r.record_date), r.product_id)
+        agg.setdefault(key, {"produced": 0.0, "sold": 0.0, "revenue": 0.0})
+        agg[key]["sold"] += r.quantity
+        agg[key]["revenue"] += r.quantity * (r.price or 0)
+
+    result: List[schemas.ReportRow] = []
+    for (period, product_id), vals in sorted(agg.items()):
+        product = product_map.get(product_id)
+        result.append(schemas.ReportRow(
+            period=period,
+            product_id=product_id,
+            product_name=product.name if product else "?",
+            produced=vals["produced"],
+            sold=vals["sold"],
+            revenue=vals["revenue"],
+        ))
+    return result
