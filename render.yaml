@@ -2,6 +2,7 @@ services:
   - type: web
     name: milk-factory-backend
     env: python
+    runtime: python-3.12
     pythonVersion: 3.12
     branch: main
     root: backend
