@@ -2,10 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import DropMark from "../components/DropMark";
-
-// Customize here once the factory's real name/branding is ready.
-const FACTORY_NAME = "Сүт заводунун системасы";
+import logoFull from "../assets/logo_full_transparent.png";
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -21,11 +18,11 @@ const Login: React.FC = () => {
 
     const trimmedUsername = username.trim();
     if (!trimmedUsername) {
-      setError("Колдонуучунун атын киргизиңиз");
+      setError("Введите имя пользователя");
       return;
     }
     if (!password) {
-      setError("Паролду киргизиңиз");
+      setError("Введите пароль");
       return;
     }
 
@@ -36,12 +33,12 @@ const Login: React.FC = () => {
     } catch (err: any) {
       const status = err?.response?.status;
       const detail = err?.response?.data?.detail;
-      if (status === 403 || /inactive|активсиз/i.test(detail || "")) {
-        setError("Бул аккаунт активсиз. Администраторго кайрылыңыз.");
+      if (status === 403 || /inactive|активсиз|неактивен/i.test(detail || "")) {
+        setError("Этот аккаунт неактивен. Обратитесь к администратору.");
       } else if (status === 401) {
-        setError("Колдонуучунун аты же пароль туура эмес");
+        setError("Неверное имя пользователя или пароль");
       } else {
-        setError(detail || "Кирүүдө ката кетти. Кайра аракет кылыңыз.");
+        setError(detail || "Ошибка при входе. Попробуйте снова.");
       }
     } finally {
       setLoading(false);
@@ -53,16 +50,13 @@ const Login: React.FC = () => {
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-2xl shadow-card border border-ink-100 p-8">
           <div className="text-center mb-7">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-milk-50 mb-4">
-              <DropMark size={30} />
-            </div>
-            <h1 className="font-display text-xl font-bold text-ink-900">{FACTORY_NAME}</h1>
-            <p className="text-sm text-ink-400 mt-1.5">Кирүү үчүн логин жана паролду киргизиңиз</p>
+            <img src={logoFull} alt="ОсОО Мыйзам — молочная фабрика" className="h-24 mx-auto mb-3 object-contain" />
+            <p className="text-sm text-ink-400 mt-1.5">Введите логин и пароль для входа</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
-              <label className="label-soft">Колдонуучунун аты</label>
+              <label className="label-soft">Имя пользователя</label>
               <input
                 type="text"
                 value={username}
@@ -92,7 +86,7 @@ const Login: React.FC = () => {
             )}
 
             <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">
-              {loading ? <span className="spinner" /> : "Кирүү"}
+              {loading ? <span className="spinner" /> : "Войти"}
             </button>
           </form>
         </div>

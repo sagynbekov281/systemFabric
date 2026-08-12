@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ModalProps {
   open: boolean;
@@ -10,6 +11,8 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ open, onClose, title, children, footer }) => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (!open) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -30,7 +33,7 @@ const Modal: React.FC<ModalProps> = ({ open, onClose, title, children, footer })
       <div className="modal-panel">
         <div className="flex items-center justify-between px-5 py-4 border-b border-ink-50">
           <h3 className="font-display text-base font-semibold text-ink-900">{title}</h3>
-          <button onClick={onClose} className="btn-icon" aria-label="Жабуу">
+          <button onClick={onClose} className="btn-icon" aria-label={t("common.close")}>
             <X size={18} />
           </button>
         </div>

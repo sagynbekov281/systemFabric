@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import { Product } from "../types";
 import { useAuth } from "../context/AuthContext";
@@ -16,14 +17,15 @@ const isValidName = (name: string) => {
   return true;
 };
 
-const stockStatus = (stock: number, minimum: number) => {
-  if (stock <= 0) return { label: "түгөндү", tone: "bg-clay-50 text-clay-600" };
-  if (stock <= minimum) return { label: "аз калды", tone: "bg-gold-50 text-gold-600" };
-  return { label: "жетиштүү", tone: "bg-milk-50 text-milk-700" };
+const stockStatus = (stock: number, minimum: number, t: (k: string) => string) => {
+  if (stock <= 0) return { label: t("dashboard.stock.out"), tone: "bg-clay-50 text-clay-600" };
+  if (stock <= minimum) return { label: t("dashboard.stock.low"), tone: "bg-gold-50 text-gold-600" };
+  return { label: t("dashboard.stock.ok"), tone: "bg-milk-50 text-milk-700" };
 };
 
 const Products: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = user?.role === "admin";
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ const Products: React.FC = () => {
     setError("");
 
     if (!isValidName(form.name)) {
-      setError("Аталышы жок дегенде 2 тамгадан турушу керек жана санда гана болбошу керек");
+      setError(t("products.nameError"));
       return;
     }
 
@@ -78,7 +80,7 @@ const Products: React.FC = () => {
       resetForm();
       load();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Ката кетти");
+      setError(err?.response?.data?.detail || t("products.genericError"));
     } finally {
       setSaving(false);
     }
@@ -113,8 +115,8 @@ const Products: React.FC = () => {
     <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink-900">Товарлар</h1>
-          <p className="text-sm text-ink-400 mt-1">Продукциялардын тизмеси жана кампадагы калдыктар</p>
+          <h1 className="font-display text-2xl font-bold text-ink-900">{t("products.title")}</h1>
+          <p className="text-sm text-ink-400 mt-1">{t("products.subtitle")}</p>
         </div>
         {isAdmin && (
           <button
@@ -125,7 +127,7 @@ const Products: React.FC = () => {
             className="btn-primary"
           >
             <Plus size={16} />
-            Товар кошуу
+            {t("products.addButton")}
           </button>
         )}
       </div>
@@ -133,17 +135,17 @@ const Products: React.FC = () => {
       {showForm && isAdmin && (
         <form onSubmit={handleSubmit} className="card-soft p-6 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="label-soft">Аталышы</label>
+            <label className="label-soft">{t("products.name")}</label>
             <input
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="input-pill"
-              placeholder="Мисалы: Кефир 1л"
+              placeholder={t("products.namePlaceholder")}
             />
           </div>
           <div>
-            <label className="label-soft">Бирдик</label>
+            <label className="label-soft">{t("products.unit")}</label>
             <OvalDropdown
               value={form.unit}
               onChange={(value) => setForm({ ...form, unit: value })}
@@ -152,11 +154,11 @@ const Products: React.FC = () => {
                 { value: "кг", label: "кг" },
                 { value: "даана", label: "даана" },
               ]}
-              placeholder="Тандоо"
+              placeholder={t("products.select")}
             />
           </div>
           <div>
-            <label className="label-soft">Баасы</label>
+            <label className="label-soft">{t("products.price")}</label>
             <input
               type="number"
               step="0.01"
@@ -168,7 +170,7 @@ const Products: React.FC = () => {
             />
           </div>
           <div>
-            <label className="label-soft">Минималдуу калдык</label>
+            <label className="label-soft">{t("products.minStock")}</label>
             <input
               type="number"
               step="0.01"
@@ -182,10 +184,10 @@ const Products: React.FC = () => {
           {error && <div className="sm:col-span-2 lg:col-span-4 text-sm text-clay-500">{error}</div>}
           <div className="sm:col-span-2 lg:col-span-4 flex gap-2">
             <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? <Loader2 size={16} className="animate-spin" /> : editingId ? "Сактоо" : "Кошуу"}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : editingId ? t("products.save") : t("products.add")}
             </button>
             <button type="button" onClick={resetForm} className="btn-ghost">
-              Артка
+              {t("products.back")}
             </button>
           </div>
         </form>
@@ -194,24 +196,24 @@ const Products: React.FC = () => {
       <div className="card-soft overflow-hidden">
         {loading ? (
           <div className="p-5 text-sm text-ink-400 flex items-center gap-2">
-            <Loader2 size={16} className="animate-spin" /> Жүктөлүүдө...
+            <Loader2 size={16} className="animate-spin" /> {t("products.loading")}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-cream-50">
-                  <th className="table-head-cell">Аталышы</th>
-                  <th className="table-head-cell">Бирдик</th>
-                  <th className="table-head-cell">Баасы</th>
-                  <th className="table-head-cell">Калдык</th>
-                  <th className="table-head-cell">Абал</th>
+                  <th className="table-head-cell">{t("products.table.name")}</th>
+                  <th className="table-head-cell">{t("products.table.unit")}</th>
+                  <th className="table-head-cell">{t("products.table.price")}</th>
+                  <th className="table-head-cell">{t("products.table.stock")}</th>
+                  <th className="table-head-cell">{t("products.table.status")}</th>
                   {isAdmin && <th className="table-head-cell"></th>}
                 </tr>
               </thead>
               <tbody>
                 {products.map((p) => {
-                  const status = stockStatus(p.stock, p.minimum_stock);
+                  const status = stockStatus(p.stock, p.minimum_stock, t);
                   return (
                     <tr key={p.id} className="table-row">
                       <td className="table-cell font-medium text-ink-700">{p.name}</td>
@@ -226,7 +228,7 @@ const Products: React.FC = () => {
                             p.is_active ? "bg-milk-50 text-milk-700" : "bg-ink-50 text-ink-400"
                           }`}
                         >
-                          {p.is_active ? "активдүү" : "активсиз"}
+                          {p.is_active ? t("products.active") : t("products.inactive")}
                         </span>
                       </td>
                       {isAdmin && (
@@ -234,7 +236,7 @@ const Products: React.FC = () => {
                           <button
                             onClick={() => handleEdit(p)}
                             className="btn-icon"
-                            aria-label="Өзгөртүү"
+                            aria-label={t("products.edit")}
                           >
                             <Pencil size={15} />
                           </button>
@@ -242,7 +244,7 @@ const Products: React.FC = () => {
                             <button
                               onClick={() => setDeleteTarget(p)}
                               className="btn-icon hover:bg-clay-50 hover:text-clay-600"
-                              aria-label="Өчүрүү"
+                              aria-label={t("products.delete")}
                             >
                               <Trash2 size={15} />
                             </button>
@@ -255,7 +257,7 @@ const Products: React.FC = () => {
                 {products.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-10 text-center text-ink-400">
-                      Товарлар табылган жок
+                      {t("products.noProducts")}
                     </td>
                   </tr>
                 )}
@@ -268,21 +270,20 @@ const Products: React.FC = () => {
       <Modal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        title="Товарды өчүрүү"
+        title={t("products.deleteModal.title")}
         footer={
           <>
             <button className="btn-ghost" onClick={() => setDeleteTarget(null)}>
-              Жокко чыгаруу
+              {t("products.deleteModal.cancel")}
             </button>
             <button className="btn-danger" onClick={confirmDelete} disabled={deleting}>
-              {deleting ? <Loader2 size={16} className="animate-spin" /> : "Өчүрүү"}
+              {deleting ? <Loader2 size={16} className="animate-spin" /> : t("products.deleteModal.confirm")}
             </button>
           </>
         }
       >
         <p className="text-sm text-ink-600">
-          <span className="font-semibold text-ink-900">{deleteTarget?.name}</span> товарын өчүрүүнү каалайсызбы? Мурда
-          колдонулган болсо, ал активсиз статусуна которулат.
+          {t("products.deleteModal.text", { name: deleteTarget?.name })}
         </p>
       </Modal>
     </div>

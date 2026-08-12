@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import { Product, SaleRecord } from "../types";
 import OvalDropdown from "../components/OvalDropdown";
@@ -6,6 +7,7 @@ import OvalDropdown from "../components/OvalDropdown";
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const Sales: React.FC = () => {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [records, setRecords] = useState<SaleRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ const Sales: React.FC = () => {
     setError("");
     setSuccess("");
     if (!form.product_id || !form.quantity) {
-      setError("Товарды жана санды толтуруңуз");
+      setError(t("sales.validationError"));
       return;
     }
     try {
@@ -56,17 +58,17 @@ const Sales: React.FC = () => {
         record_date: form.record_date,
         note: form.note || null,
       });
-      setSuccess("Ийгиликтүү катталды!");
+      setSuccess(t("sales.success"));
       setForm({ ...form, quantity: "", price: "", customer: "", note: "" });
       load();
       setTimeout(() => setSuccess(""), 2500);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Ката кетти");
+      setError(err?.response?.data?.detail || t("sales.genericError"));
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Бул жазууну өчүрөсүзбү?")) return;
+    if (!confirm(t("sales.deleteConfirm"))) return;
     await api.delete(`/sales/${id}`);
     load();
   };
@@ -74,22 +76,25 @@ const Sales: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-ink-900">Сатуу</h1>
-        <p className="text-sm text-ink-400 mt-1">Сатылган товарларды каттоо</p>
+        <h1 className="font-display text-2xl font-bold text-ink-900">{t("sales.title")}</h1>
+        <p className="text-sm text-ink-400 mt-1">{t("sales.subtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="card-soft p-6 mb-6 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div>
-          <label className="label-soft">Товар</label>
+          <label className="label-soft">{t("sales.product")}</label>
           <OvalDropdown
             value={form.product_id}
             onChange={(value) => setForm({ ...form, product_id: value })}
-            options={products.map((p) => ({ value: String(p.id), label: `${p.name} (калдык: ${p.stock})` }))}
-            placeholder="Тандоо"
+            options={products.map((p) => ({
+              value: String(p.id),
+              label: t("sales.productOption", { name: p.name, stock: p.stock }),
+            }))}
+            placeholder={t("sales.select")}
           />
         </div>
         <div>
-          <label className="label-soft">Саны</label>
+          <label className="label-soft">{t("sales.quantity")}</label>
           <input
             type="number"
             step="0.01"
@@ -102,7 +107,7 @@ const Sales: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Баасы (бирдиги)</label>
+          <label className="label-soft">{t("sales.price")}</label>
           <input
             type="number"
             step="0.01"
@@ -110,20 +115,20 @@ const Sales: React.FC = () => {
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
             className="input-pill font-mono"
-            placeholder="милдеттүү эмес"
+            placeholder={t("sales.optional")}
           />
         </div>
         <div>
-          <label className="label-soft">Кардар</label>
+          <label className="label-soft">{t("sales.customer")}</label>
           <input
             value={form.customer}
             onChange={(e) => setForm({ ...form, customer: e.target.value })}
             className="input-pill"
-            placeholder="милдеттүү эмес"
+            placeholder={t("sales.optional")}
           />
         </div>
         <div>
-          <label className="label-soft">Күнү</label>
+          <label className="label-soft">{t("sales.date")}</label>
           <input
             type="date"
             value={form.record_date}
@@ -132,12 +137,12 @@ const Sales: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Эскертүү</label>
+          <label className="label-soft">{t("sales.note")}</label>
           <input
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
             className="input-pill"
-            placeholder="милдеттүү эмес"
+            placeholder={t("sales.optional")}
           />
         </div>
         {error && <div className="sm:col-span-3 lg:col-span-6 text-sm text-clay-500">{error}</div>}
@@ -146,25 +151,25 @@ const Sales: React.FC = () => {
         )}
         <div className="sm:col-span-3 lg:col-span-6">
           <button type="submit" className="btn-primary">
-            Катталуу
+            {t("sales.submit")}
           </button>
         </div>
       </form>
 
       <div className="card-soft overflow-hidden">
         {loading ? (
-          <div className="p-5 text-sm text-ink-400">Жүктөлүүдө...</div>
+          <div className="p-5 text-sm text-ink-400">{t("sales.loading")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-400 border-b-[1.5px] border-ink-900 bg-cream-100">
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Күнү</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Товар</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Саны</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Баасы</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Кардар</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Кимден</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("sales.table.date")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("sales.table.product")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("sales.table.quantity")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("sales.table.price")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("sales.table.customer")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("sales.table.createdBy")}</th>
                   <th className="px-6 py-3.5"></th>
                 </tr>
               </thead>
@@ -184,7 +189,7 @@ const Sales: React.FC = () => {
                         onClick={() => handleDelete(r.id)}
                         className="text-clay-500 text-xs font-semibold hover:underline"
                       >
-                        Өчүрүү
+                        {t("sales.delete")}
                       </button>
                     </td>
                   </tr>
@@ -192,7 +197,7 @@ const Sales: React.FC = () => {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-10 text-center text-ink-400">
-                      Жазуулар жок
+                      {t("sales.noRecords")}
                     </td>
                   </tr>
                 )}

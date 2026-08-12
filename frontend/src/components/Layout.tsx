@@ -9,27 +9,29 @@ import {
   Users,
   Menu,
   X,
-  ChevronUp,
+  ChevronDown,
   User as UserIcon,
   KeyRound,
   LogOut,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import DropMark from "./DropMark";
 import Modal from "./Modal";
 import ChangePasswordForm from "./ChangePasswordForm";
 
 const navItems = [
-  { to: "/", label: "Башкы бет", icon: LayoutDashboard, adminOnly: false },
-  { to: "/products", label: "Товарлар", icon: Package, adminOnly: false },
-  { to: "/production", label: "Өндүрүш", icon: Factory, adminOnly: false },
-  { to: "/sales", label: "Сатуу", icon: Receipt, adminOnly: false },
-  { to: "/reports", label: "Отчеттор", icon: BarChart3, adminOnly: true },
-  { to: "/users", label: "Кызматкерлер", icon: Users, adminOnly: true },
+  { to: "/", key: "nav.dashboard", icon: LayoutDashboard, adminOnly: false },
+  { to: "/products", key: "nav.products", icon: Package, adminOnly: false },
+  { to: "/production", key: "nav.production", icon: Factory, adminOnly: false },
+  { to: "/sales", key: "nav.sales", icon: Receipt, adminOnly: false },
+  { to: "/reports", key: "nav.reports", icon: BarChart3, adminOnly: true },
+  { to: "/users", key: "nav.users", icon: Users, adminOnly: true },
 ];
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -54,24 +56,41 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     navigate("/login");
   };
 
+  const LangToggle = () => (
+    <div className="lang-toggle-dark">
+      <button
+        className={i18n.language === "ky" ? "active" : ""}
+        onClick={() => i18n.changeLanguage("ky")}
+      >
+        KG
+      </button>
+      <button
+        className={i18n.language === "ru" ? "active" : ""}
+        onClick={() => i18n.changeLanguage("ru")}
+      >
+        RU
+      </button>
+    </div>
+  );
+
   const ProfileCard = ({ stacked }: { stacked?: boolean }) => (
     <div className="relative" ref={stacked ? profileRef : undefined}>
       <button
         onClick={() => setProfileMenuOpen((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-ink-100 bg-white hover:border-milk-200 hover:bg-milk-50/40 transition-colors duration-150"
+        className="profile-mini-dark w-full"
       >
-        <div className="w-9 h-9 rounded-full bg-milk-100 text-milk-700 flex items-center justify-center font-semibold text-sm shrink-0">
+        <div className="avatar-gradient">
           {user?.full_name?.charAt(0)?.toUpperCase() || "?"}
         </div>
         <div className="text-left min-w-0 flex-1">
-          <div className="text-sm font-semibold text-ink-900 truncate">{user?.full_name}</div>
-          <div className="text-[11px] text-ink-400">
-            {user?.role === "admin" ? "Администратор" : "Кызматкер"}
+          <div className="text-sm font-bold text-white truncate">{user?.full_name}</div>
+          <div className="text-[11px] text-white/55">
+            {user?.role === "admin" ? t("roles.admin") : t("roles.employee")}
           </div>
         </div>
-        <ChevronUp
-          size={16}
-          className={`text-ink-400 transition-transform duration-150 ${profileMenuOpen ? "" : "rotate-180"}`}
+        <ChevronDown
+          size={15}
+          className={`text-white/50 transition-transform duration-200 shrink-0 ${profileMenuOpen ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -85,7 +104,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             }}
           >
             <UserIcon size={16} className="text-ink-400" />
-            Менин профилим
+            {t("profile.myProfile")}
           </button>
           <button
             className="dropdown-item"
@@ -95,11 +114,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             }}
           >
             <KeyRound size={16} className="text-ink-400" />
-            Пароль өзгөртүү
+            {t("profile.changePassword")}
           </button>
-          <button className="dropdown-item text-clay-500" onClick={handleLogout}>
+          <button className="dropdown-item text-clay-500 hover:bg-clay-50 hover:text-clay-600" onClick={handleLogout}>
             <LogOut size={16} />
-            Чыгуу
+            {t("profile.logout")}
           </button>
         </div>
       )}
@@ -108,16 +127,19 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-cream-50 flex">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col w-64 bg-white border-r border-ink-100 shrink-0">
-        <div className="px-5 py-6 flex items-center gap-2.5">
-          <DropMark size={28} />
-          <div>
-            <div className="font-display text-[15px] font-bold text-ink-900 leading-tight">Сүт заводу</div>
-            <div className="text-[11px] text-ink-400">Ички башкаруу</div>
+      {/* Desktop / tablet sidebar */}
+      <aside className="hidden md:flex md:flex-col w-56 lg:w-64 shrink-0 sidebar-dark p-3 lg:p-4">
+        <div className="flex items-center gap-2.5 px-2 py-4 lg:py-5 relative z-10">
+          <div className="brand-icon-tile">
+            <DropMark size={22} />
+          </div>
+          <div className="min-w-0">
+            <div className="font-display text-[14px] lg:text-[15px] font-extrabold leading-tight truncate">{t("app.name")}</div>
+            <div className="text-[10px] lg:text-[11px] text-white/55 truncate">{t("app.subtitle")}</div>
           </div>
         </div>
-        <nav className="flex-1 px-3 py-2 space-y-0.5">
+
+        <nav className="flex-1 space-y-1 relative z-10 mt-2">
           {visibleItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -125,43 +147,42 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 key={item.to}
                 to={item.to}
                 end={item.to === "/"}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
-                    isActive
-                      ? "bg-milk-50 text-milk-700"
-                      : "text-ink-500 hover:bg-ink-50 hover:text-ink-700"
-                  }`
-                }
+                className={({ isActive }) => `nav-link-dark ${isActive ? "nav-link-dark-active" : ""}`}
               >
-                <Icon size={18} strokeWidth={2} />
-                {item.label}
+                <Icon size={18} strokeWidth={2} className="shrink-0" />
+                <span className="truncate">{t(item.key)}</span>
               </NavLink>
             );
           })}
         </nav>
-        <div className="px-3 mb-4 mt-2">
+
+        <div className="relative z-10 space-y-2.5 mt-3">
+          <LangToggle />
           <ProfileCard stacked />
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-ink-100 flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <DropMark size={24} />
-          <span className="font-display font-bold text-ink-900 text-sm">Сүт заводу</span>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 sidebar-dark flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-2 relative z-10 min-w-0">
+          <div className="brand-icon-tile w-8 h-8">
+            <DropMark size={18} />
+          </div>
+          <span className="font-display font-bold text-white text-sm truncate">{t("app.name")}</span>
         </div>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="btn-icon bg-ink-50"
-          aria-label="Меню"
+          className="relative z-10 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 text-white transition-colors duration-150 hover:bg-white/20 shrink-0"
+          aria-label={t("profile.menu")}
         >
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
+      {/* Mobile menu drawer */}
       {menuOpen && (
-        <div className="md:hidden fixed top-[57px] left-0 right-0 z-20 bg-white border-b border-ink-100 shadow-popover">
-          <nav className="px-3 py-3 space-y-0.5">
+        <div className="md:hidden fixed top-[57px] left-0 right-0 bottom-0 z-20 sidebar-dark overflow-y-auto animate-slide-down">
+          <nav className="px-3 py-4 space-y-1 relative z-10">
             {visibleItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -170,18 +191,15 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   to={item.to}
                   end={item.to === "/"}
                   onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium ${
-                      isActive ? "bg-milk-50 text-milk-700" : "text-ink-500 hover:bg-ink-50"
-                    }`
-                  }
+                  className={({ isActive }) => `nav-link-dark ${isActive ? "nav-link-dark-active" : ""}`}
                 >
                   <Icon size={18} />
-                  {item.label}
+                  {t(item.key)}
                 </NavLink>
               );
             })}
-            <div className="pt-3 mt-2 border-t border-ink-50 px-1">
+            <div className="pt-4 mt-3 border-t border-white/10 space-y-2.5">
+              <LangToggle />
               <ProfileCard />
             </div>
           </nav>
@@ -189,33 +207,33 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       )}
 
       <main className="flex-1 min-w-0 pt-[57px] md:pt-0">
-        <div className="max-w-6xl mx-auto p-4 md:p-8">{children}</div>
+        <div className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 lg:p-10">{children}</div>
       </main>
 
-      <Modal open={profileModalOpen} onClose={() => setProfileModalOpen(false)} title="Менин профилим">
+      <Modal open={profileModalOpen} onClose={() => setProfileModalOpen(false)} title={t("profile.myProfile")}>
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-between py-2 border-b border-ink-50">
-            <span className="text-ink-400">Аты-жөнү</span>
+            <span className="text-ink-400">{t("profile.fullName")}</span>
             <span className="font-medium text-ink-900">{user?.full_name}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-ink-50">
-            <span className="text-ink-400">Username</span>
+            <span className="text-ink-400">{t("profile.username")}</span>
             <span className="font-medium text-ink-900">{user?.username}</span>
           </div>
           <div className="flex items-center justify-between py-2 border-b border-ink-50">
-            <span className="text-ink-400">Ролу</span>
-            <span className="pill-tag bg-milk-50 text-milk-700">
-              {user?.role === "admin" ? "администратор" : "кызматкер"}
+            <span className="text-ink-400">{t("profile.role")}</span>
+            <span className="pill-tag bg-sprout-50 text-sprout-700">
+              {user?.role === "admin" ? t("roles.admin") : t("roles.employee")}
             </span>
           </div>
           <div className="flex items-center justify-between py-2">
-            <span className="text-ink-400">Аккаунт статусу</span>
-            <span className="pill-tag bg-milk-50 text-milk-700">активдүү</span>
+            <span className="text-ink-400">{t("profile.accountStatus")}</span>
+            <span className="pill-tag bg-sprout-50 text-sprout-700">{t("profile.active")}</span>
           </div>
         </div>
       </Modal>
 
-      <Modal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} title="Пароль өзгөртүү">
+      <Modal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} title={t("profile.changePassword")}>
         <ChangePasswordForm onDone={() => setPasswordModalOpen(false)} />
       </Modal>
     </div>

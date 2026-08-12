@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import { ReportRow } from "../types";
 import OvalDropdown from "../components/OvalDropdown";
@@ -23,6 +24,7 @@ const monthAgoStr = () => {
 type GroupBy = "day" | "week" | "month" | "year";
 
 const Reports: React.FC = () => {
+  const { t } = useTranslation();
   const [dateFrom, setDateFrom] = useState(monthAgoStr());
   const [dateTo, setDateTo] = useState(todayStr());
   const [groupBy, setGroupBy] = useState<GroupBy>("day");
@@ -59,13 +61,13 @@ const Reports: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-ink-900">Отчеттор</h1>
-        <p className="text-sm text-ink-400 mt-1">Күндүк, жумалык, айлык жана жылдык отчеттор</p>
+        <h1 className="font-display text-2xl font-bold text-ink-900">{t("reports.title")}</h1>
+        <p className="text-sm text-ink-400 mt-1">{t("reports.subtitle")}</p>
       </div>
 
       <div className="card-soft p-6 mb-6 grid gap-4 sm:grid-cols-4">
         <div>
-          <label className="label-soft">Баштап</label>
+          <label className="label-soft">{t("reports.from")}</label>
           <input
             type="date"
             value={dateFrom}
@@ -74,7 +76,7 @@ const Reports: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Чейин</label>
+          <label className="label-soft">{t("reports.to")}</label>
           <input
             type="date"
             value={dateTo}
@@ -83,43 +85,45 @@ const Reports: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Топтоо</label>
+          <label className="label-soft">{t("reports.groupBy")}</label>
           <OvalDropdown
             value={groupBy}
             onChange={(value) => setGroupBy(value as GroupBy)}
             options={[
-              { value: "day", label: "Күн сайын" },
-              { value: "week", label: "Жума сайын" },
-              { value: "month", label: "Ай сайын" },
-              { value: "year", label: "Жыл сайын" },
+              { value: "day", label: t("reports.group.day") },
+              { value: "week", label: t("reports.group.week") },
+              { value: "month", label: t("reports.group.month") },
+              { value: "year", label: t("reports.group.year") },
             ]}
-            placeholder="Тандоо"
+            placeholder={t("reports.select")}
           />
         </div>
         <div className="flex items-end">
           <button onClick={load} className="btn-primary w-full">
-            Отчет чыгаруу
+            {t("reports.generate")}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card-soft p-4 text-center">
-          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">Жалпы өндүрүлдү</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">{t("reports.totalProduced")}</div>
           <div className="font-mono text-xl font-bold text-milk-600 mt-1 tabular-nums">{totalProduced.toLocaleString()}</div>
         </div>
         <div className="card-soft p-4 text-center">
-          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">Жалпы сатылды</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">{t("reports.totalSold")}</div>
           <div className="font-mono text-xl font-bold text-gold-600 mt-1 tabular-nums">{totalSold.toLocaleString()}</div>
         </div>
         <div className="card-soft p-4 text-center">
-          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">Жалпы киреше</div>
-          <div className="font-mono text-xl font-bold text-plum-500 mt-1 tabular-nums">{totalRevenue.toLocaleString()} сом</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">{t("reports.totalRevenue")}</div>
+          <div className="font-mono text-xl font-bold text-plum-500 mt-1 tabular-nums">
+            {totalRevenue.toLocaleString()} {t("reports.sum")}
+          </div>
         </div>
       </div>
 
       <div className="card-soft p-6 mb-6">
-        <h2 className="font-display font-semibold text-ink-900 mb-4">Мезгил боюнча график</h2>
+        <h2 className="font-display font-semibold text-ink-900 mb-4">{t("reports.chartTitle")}</h2>
         <div style={{ width: "100%", height: 280 }}>
           <ResponsiveContainer>
             <BarChart data={chartData}>
@@ -130,8 +134,8 @@ const Reports: React.FC = () => {
                 contentStyle={{ borderRadius: 2, border: "1.5px solid #131209", fontSize: 13, fontFamily: "JetBrains Mono" }}
               />
               <Legend wrapperStyle={{ fontSize: 12, fontFamily: "JetBrains Mono" }} />
-              <Bar dataKey="produced" name="Өндүрүлдү" fill="#22386D" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="sold" name="Сатылды" fill="#A06F0E" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="produced" name={t("reports.produced")} fill="#22386D" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="sold" name={t("reports.sold")} fill="#A06F0E" radius={[0, 0, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -139,17 +143,17 @@ const Reports: React.FC = () => {
 
       <div className="card-soft overflow-hidden">
         {loading ? (
-          <div className="p-5 text-sm text-ink-400">Жүктөлүүдө...</div>
+          <div className="p-5 text-sm text-ink-400">{t("reports.loading")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-400 border-b-[1.5px] border-ink-900 bg-cream-100">
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Мезгил</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Товар</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Өндүрүлдү</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Сатылды</th>
-                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Киреше</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("reports.table.period")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("reports.table.product")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("reports.table.produced")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("reports.table.sold")}</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">{t("reports.table.revenue")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -165,7 +169,7 @@ const Reports: React.FC = () => {
                 {rows.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-ink-400">
-                      Маалымат жок
+                      {t("reports.noData")}
                     </td>
                   </tr>
                 )}

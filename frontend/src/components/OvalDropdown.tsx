@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type Option = {
   value: string;
@@ -15,6 +16,7 @@ interface OvalDropdownProps {
 }
 
 const OvalDropdown: React.FC<OvalDropdownProps> = ({ value, onChange, options, placeholder, className }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +49,7 @@ const OvalDropdown: React.FC<OvalDropdownProps> = ({ value, onChange, options, p
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        <span className="truncate text-left">{selectedOption?.label || placeholder || "Тандоо"}</span>
+        <span className="truncate text-left">{selectedOption?.label || placeholder || t("common.select")}</span>
         <span
           className={`text-ink-400 text-xs transition-transform duration-150 ${open ? "rotate-180" : ""}`}
         >
@@ -87,7 +89,7 @@ const OvalDropdown: React.FC<OvalDropdownProps> = ({ value, onChange, options, p
             );
           })}
           {options.length === 0 && (
-            <div className="px-4 py-3 text-sm text-ink-400">Жок</div>
+            <div className="px-4 py-3 text-sm text-ink-400">{t("common.noOptions")}</div>
           )}
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type Option = {
   value: string;
@@ -15,6 +16,7 @@ interface OvalSelectProps {
 }
 
 const OvalSelect: React.FC<OvalSelectProps> = ({ value, onChange, options, placeholder, className }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +43,7 @@ const OvalSelect: React.FC<OvalSelectProps> = ({ value, onChange, options, place
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
       >
-        <span className="truncate text-left">{selectedOption?.label || placeholder || "Тандоо"}</span>
+        <span className="truncate text-left">{selectedOption?.label || placeholder || t("common.select")}</span>
         <span className={`transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../api";
 import { Product, ProductionRecord } from "../types";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +10,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const Production: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [records, setRecords] = useState<ProductionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ const Production: React.FC = () => {
     setError("");
     setSuccess("");
     if (!form.product_id || !form.quantity) {
-      setError("Товарды жана санды толтуруңуз");
+      setError(t("production.validationError"));
       return;
     }
     setSaving(true);
@@ -59,19 +61,19 @@ const Production: React.FC = () => {
         record_date: form.record_date,
         note: form.note || null,
       });
-      setSuccess("Ийгиликтүү катталды!");
+      setSuccess(t("production.success"));
       setForm({ ...form, quantity: "", note: "" });
       load();
       setTimeout(() => setSuccess(""), 2500);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Ката кетти");
+      setError(err?.response?.data?.detail || t("production.genericError"));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Бул жазууну өчүрөсүзбү?")) return;
+    if (!confirm(t("production.deleteConfirm"))) return;
     await api.delete(`/production/${id}`);
     load();
   };
@@ -79,23 +81,23 @@ const Production: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-ink-900">Өндүрүш</h1>
-        <p className="text-sm text-ink-400 mt-1">Чыгарылган товарларды катталуу</p>
+        <h1 className="font-display text-2xl font-bold text-ink-900">{t("production.title")}</h1>
+        <p className="text-sm text-ink-400 mt-1">{t("production.subtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="card-soft p-6 mb-6 grid gap-4 sm:grid-cols-4">
         <div>
-          <label className="label-soft">Товар</label>
+          <label className="label-soft">{t("production.product")}</label>
           <OvalDropdown
             value={form.product_id}
             onChange={(value) => setForm({ ...form, product_id: value })}
             options={products.map((p) => ({ value: String(p.id), label: p.name }))}
-            placeholder="Тандоо"
+            placeholder={t("production.select")}
           />
         </div>
         <div>
           <label className="label-soft">
-            Саны {selectedProduct && <span className="text-ink-400">({selectedProduct.unit})</span>}
+            {t("production.quantity")} {selectedProduct && <span className="text-ink-400">({selectedProduct.unit})</span>}
           </label>
           <input
             type="number"
@@ -109,7 +111,7 @@ const Production: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Күнү</label>
+          <label className="label-soft">{t("production.date")}</label>
           <input
             type="date"
             value={form.record_date}
@@ -118,7 +120,7 @@ const Production: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Эскертүү (милдеттүү эмес)</label>
+          <label className="label-soft">{t("production.note")}</label>
           <input
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
@@ -129,7 +131,7 @@ const Production: React.FC = () => {
         {success && <div className="sm:col-span-4 text-sm text-milk-700 bg-milk-50 rounded-xl px-4 py-2.5">{success}</div>}
         <div className="sm:col-span-4">
           <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? <Loader2 size={16} className="animate-spin" /> : "Катталуу"}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : t("production.submit")}
           </button>
         </div>
       </form>
@@ -137,17 +139,17 @@ const Production: React.FC = () => {
       <div className="card-soft overflow-hidden">
         {loading ? (
           <div className="p-5 text-sm text-ink-400 flex items-center gap-2">
-            <Loader2 size={16} className="animate-spin" /> Жүктөлүүдө...
+            <Loader2 size={16} className="animate-spin" /> {t("production.loading")}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-cream-50">
-                  <th className="table-head-cell">Күнү</th>
-                  <th className="table-head-cell">Товар</th>
-                  <th className="table-head-cell">Саны</th>
-                  <th className="table-head-cell">Кимден</th>
+                  <th className="table-head-cell">{t("production.table.date")}</th>
+                  <th className="table-head-cell">{t("production.table.product")}</th>
+                  <th className="table-head-cell">{t("production.table.quantity")}</th>
+                  <th className="table-head-cell">{t("production.table.createdBy")}</th>
                   <th className="table-head-cell"></th>
                 </tr>
               </thead>
@@ -165,7 +167,7 @@ const Production: React.FC = () => {
                         <button
                           onClick={() => handleDelete(r.id)}
                           className="btn-icon hover:bg-clay-50 hover:text-clay-600"
-                          aria-label="Өчүрүү"
+                          aria-label={t("production.delete")}
                         >
                           <Trash2 size={15} />
                         </button>
@@ -176,7 +178,7 @@ const Production: React.FC = () => {
                 {records.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-ink-400">
-                      Жазуулар жок
+                      {t("production.noRecords")}
                     </td>
                   </tr>
                 )}
