@@ -24,9 +24,16 @@ const OvalDropdown: React.FC<OvalDropdownProps> = ({ value, onChange, options, p
         setOpen(false);
       }
     };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
 
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   const selectedOption = options.find((option) => option.value === value);
@@ -41,29 +48,47 @@ const OvalDropdown: React.FC<OvalDropdownProps> = ({ value, onChange, options, p
         aria-haspopup="listbox"
       >
         <span className="truncate text-left">{selectedOption?.label || placeholder || "Тандоо"}</span>
-        <span className={`transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+        <span
+          className={`text-ink-400 text-xs transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        >
+          ▾
+        </span>
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 z-20 mt-2 rounded-3xl border border-ink-50 bg-white shadow-soft">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              disabled={option.disabled}
-              onClick={() => {
-                if (!option.disabled) {
-                  onChange(option.value);
-                  setOpen(false);
-                }
-              }}
-              className={`w-full px-5 py-3 text-left text-sm text-ink-700 transition-colors duration-150 ${
-                option.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-ink-50"
-              } ${option.value === value ? "bg-milk-50 font-semibold" : ""}`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 z-20 mt-1.5 max-h-64 overflow-y-auto rounded-xl border border-ink-100 bg-white py-1.5 shadow-soft"
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                disabled={option.disabled}
+                onClick={() => {
+                  if (!option.disabled) {
+                    onChange(option.value);
+                    setOpen(false);
+                  }
+                }}
+                className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-100 ${
+                  option.disabled
+                    ? "cursor-not-allowed text-ink-400/60"
+                    : "cursor-pointer text-ink-700 hover:bg-milk-50"
+                } ${isSelected ? "bg-milk-50 font-semibold text-milk-700" : ""}`}
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected && <span className="shrink-0 text-milk-500">✓</span>}
+              </button>
+            );
+          })}
+          {options.length === 0 && (
+            <div className="px-4 py-3 text-sm text-ink-400">Жок</div>
+          )}
         </div>
       )}
     </div>

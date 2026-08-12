@@ -8,20 +8,21 @@ html {
 
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #FDFBF7;
-  color: #2C3A38;
+  background-color: #FAFAF9;
+  color: #212B27;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, .font-display {
-  font-family: "Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.015em;
 }
 
 ::selection {
-  background-color: #DAEBE2;
-  color: #123F34;
+  background-color: #CDEBD7;
+  color: #124D2D;
 }
 
-/* Custom scrollbar, subtle */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -30,43 +31,97 @@ h1, h2, h3, .font-display {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #EFE5D2;
+  background-color: #E4E4DF;
   border-radius: 999px;
-  border: 2px solid #FDFBF7;
+  border: 2px solid #FAFAF9;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #CFCFC8;
 }
 
 @layer components {
-  /* Pill-shaped text/number/date inputs */
+  /* ---------- Inputs ---------- */
   .input-pill {
-    @apply w-full rounded-full border border-ink-50 bg-white px-5 py-2.5 text-sm text-ink-700 placeholder:text-ink-400/60 shadow-[inset_0_1px_2px_rgba(27,38,36,0.03)] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-milk-500/40 focus:border-milk-400;
+    @apply w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-700 placeholder:text-ink-400/70 shadow-[inset_0_1px_2px_rgba(18,24,21,0.03)] transition-all duration-150 focus:outline-none focus:border-milk-500 focus:shadow-focus disabled:bg-ink-50 disabled:text-ink-400 disabled:cursor-not-allowed;
   }
 
-  /* Pill-shaped, custom-chevron select — the "oval" dropdown */
   .select-pill,
   select {
-    @apply w-full appearance-none rounded-full border border-ink-50 bg-white pl-5 pr-11 py-2.5 text-sm text-ink-700 shadow-[inset_0_1px_2px_rgba(27,38,36,0.03)] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-milk-500/40 focus:border-milk-400 cursor-pointer bg-no-repeat;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235C6E6A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-position: right 1.1rem center;
+    @apply w-full appearance-none rounded-xl border border-ink-100 bg-white pl-3.5 pr-10 py-2.5 text-sm text-ink-700 shadow-[inset_0_1px_2px_rgba(18,24,21,0.03)] transition-all duration-150 focus:outline-none focus:border-milk-500 focus:shadow-focus cursor-pointer bg-no-repeat disabled:bg-ink-50 disabled:text-ink-400 disabled:cursor-not-allowed;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2366716D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-position: right 0.85rem center;
     background-size: 13px;
   }
 
-  .label-soft {
-    @apply block text-[11px] font-semibold uppercase tracking-wide text-ink-400 mb-1.5;
+  /* Read-only field used to display a value the user can't edit
+     (e.g. a product's unit once the product is chosen) */
+  .input-static {
+    @apply w-full rounded-xl border border-ink-100 bg-ink-50 px-3.5 py-2.5 text-sm text-ink-500;
   }
 
+  .label-soft {
+    @apply block text-[12px] font-medium text-ink-500 mb-1.5;
+  }
+
+  /* ---------- Buttons ---------- */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full bg-milk-500 px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition-all duration-150 hover:bg-milk-600 hover:shadow-none active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-milk-500 px-4 py-2.5 text-sm font-semibold text-white shadow-none transition-all duration-150 hover:bg-milk-600 active:bg-milk-700 focus:outline-none focus:shadow-focus disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-ink-50 bg-white px-5 py-2.5 text-sm font-semibold text-ink-500 transition-all duration-150 hover:border-ink-400/40 hover:text-ink-700 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink-100 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition-all duration-150 hover:bg-ink-50 active:bg-ink-100 focus:outline-none focus:shadow-focus disabled:opacity-50 disabled:pointer-events-none;
   }
 
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-clay-500 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-clay-600 focus:outline-none focus:shadow-focus disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-500 transition-colors duration-150 hover:bg-ink-50 hover:text-ink-700 focus:outline-none disabled:opacity-40 disabled:pointer-events-none;
+  }
+
+  /* ---------- Surfaces ---------- */
   .card-soft {
-    @apply bg-white rounded-3xl border border-ink-50/80 shadow-soft;
+    @apply bg-white rounded-xl border border-ink-100 shadow-card;
   }
 
   .pill-tag {
-    @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide;
+  }
+
+  /* ---------- Table ---------- */
+  .table-head-cell {
+    @apply px-4 py-2.5 font-medium text-[11px] uppercase tracking-wide text-ink-400 text-left;
+  }
+
+  .table-row {
+    @apply border-b border-ink-50 last:border-0 transition-colors duration-100 hover:bg-cream-50;
+  }
+
+  .table-cell {
+    @apply px-4 py-3;
+  }
+
+  /* ---------- Overlays ---------- */
+  .modal-backdrop {
+    @apply fixed inset-0 z-40 bg-ink-900/40 flex items-center justify-center p-4;
+  }
+
+  .modal-panel {
+    @apply w-full max-w-md bg-white rounded-xl shadow-popover border border-ink-100;
+  }
+
+  .dropdown-panel {
+    @apply absolute z-30 rounded-xl border border-ink-100 bg-white shadow-popover py-1.5;
+  }
+
+  .dropdown-item {
+    @apply flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-ink-700 transition-colors duration-100 hover:bg-ink-50;
+  }
+}
+
+@layer utilities {
+  .spinner {
+    @apply inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin;
   }
 }

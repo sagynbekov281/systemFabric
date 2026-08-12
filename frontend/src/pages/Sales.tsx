@@ -97,7 +97,7 @@ const Sales: React.FC = () => {
             required
             value={form.quantity}
             onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-            className="input-pill"
+            className="input-pill font-mono"
             placeholder="0"
           />
         </div>
@@ -109,7 +109,7 @@ const Sales: React.FC = () => {
             min="0"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="input-pill"
+            className="input-pill font-mono"
             placeholder="милдеттүү эмес"
           />
         </div>
@@ -128,7 +128,7 @@ const Sales: React.FC = () => {
             type="date"
             value={form.record_date}
             onChange={(e) => setForm({ ...form, record_date: e.target.value })}
-            className="input-pill"
+            className="input-pill font-mono"
           />
         </div>
         <div>
@@ -158,25 +158,25 @@ const Sales: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-ink-400 border-b border-ink-50">
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Күнү</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Товар</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Саны</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Баасы</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Кардар</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Кимден</th>
+                <tr className="text-left text-ink-400 border-b-[1.5px] border-ink-900 bg-cream-100">
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Күнү</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Товар</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Саны</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Баасы</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Кардар</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Кимден</th>
                   <th className="px-6 py-3.5"></th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((r) => (
-                  <tr key={r.id} className="border-b border-ink-50/60 last:border-0 hover:bg-cream-50/60 transition-colors">
-                    <td className="px-6 py-3.5 text-ink-500">{r.record_date}</td>
+                  <tr key={r.id} className="border-b border-ink-100 last:border-0 hover:bg-cream-50 transition-colors">
+                    <td className="px-6 py-3.5 font-mono text-ink-500">{r.record_date}</td>
                     <td className="px-6 py-3.5 font-medium text-ink-700">{r.product_name}</td>
                     <td className="px-6 py-3.5">
                       <span className="pill-tag bg-gold-50 text-gold-600">-{r.quantity}</span>
                     </td>
-                    <td className="px-6 py-3.5 text-ink-500">{r.price ?? "—"}</td>
+                    <td className="px-6 py-3.5 font-mono text-ink-500">{r.price ?? "—"}</td>
                     <td className="px-6 py-3.5 text-ink-500">{r.customer ?? "—"}</td>
                     <td className="px-6 py-3.5 text-ink-500">{r.created_by_name}</td>
                     <td className="px-6 py-3.5 text-right">

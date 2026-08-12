@@ -14,6 +14,8 @@ export interface Product {
   name: string;
   unit: string;
   description?: string | null;
+  price?: number | null;
+  minimum_stock: number;
   is_active: boolean;
   created_at: string;
   stock: number;
@@ -45,13 +47,32 @@ export interface SaleRecord {
   created_at: string;
 }
 
+// One row per unit, since litres/kg/pieces can't be summed into one figure
+// (see Dashboard: "Бүгүн өндүрүлдү").
+export interface UnitQuantity {
+  unit: string;
+  quantity: number;
+}
+
+// A single production or sale event, for the Dashboard's "Акыркы операциялар" feed.
+export interface RecentOperation {
+  time: string;
+  product_name: string;
+  quantity: number;
+  unit: string;
+  type: "production" | "sale";
+  user_name: string;
+}
+
 export interface DashboardSummary {
   total_products: number;
   today_produced: number;
+  today_produced_by_unit: UnitQuantity[];
   today_sold: number;
   today_revenue: number;
   total_stock: number;
   low_stock_products: Product[];
+  recent_operations: RecentOperation[];
 }
 
 export interface ReportRow {

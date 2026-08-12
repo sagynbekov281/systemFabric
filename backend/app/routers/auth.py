@@ -7,7 +7,7 @@ from ..database import get_db
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=schemas.Token)
+@router.post("/login")
 def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = auth.authenticate_user(db, payload.username, payload.password)
     if not user:
@@ -16,12 +16,13 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
             detail="Колдонуучунун аты же пароль туура эмес",
         )
     access_token = auth.create_access_token(data={"sub": user.username, "role": user.role.value})
-    return schemas.Token(
-        access_token=access_token,
-        role=user.role,
-        full_name=user.full_name,
-        username=user.username,
-    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role.value,
+        "full_name": user.full_name,
+        "username": user.username,
+    }
 
 
 @router.get("/me", response_model=schemas.UserOut)

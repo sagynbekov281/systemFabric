@@ -6,9 +6,10 @@ from .models import UserRole
 
 # ---------- Auth ----------
 class Token(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     access_token: str
     token_type: str = "bearer"
-    role: UserRole
+    role: str  # Изменено на str для лучшей совместимости
     full_name: str
     username: str
 

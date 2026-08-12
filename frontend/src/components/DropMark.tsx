@@ -1,7 +1,7 @@
 import React from "react";
 
 /**
- * Фирменный знак: капля молока с бирюзово-золотым градиентом.
+ * Фирменный знак: капля молока в фирменном зелёном градиенте.
  * Используется в сайдбаре, на странице входа и как decorative watermark.
  */
 const DropMark: React.FC<{ size?: number; className?: string }> = ({ size = 32, className = "" }) => (
@@ -15,9 +15,9 @@ const DropMark: React.FC<{ size?: number; className?: string }> = ({ size = 32, 
   >
     <defs>
       <linearGradient id="dropGradient" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#3E8E75" />
-        <stop offset="55%" stopColor="#1F6F5C" />
-        <stop offset="100%" stopColor="#E0A428" />
+        <stop offset="0%" stopColor="#2E9E5B" />
+        <stop offset="55%" stopColor="#1D8049" />
+        <stop offset="100%" stopColor="#124D2D" />
       </linearGradient>
     </defs>
     <path

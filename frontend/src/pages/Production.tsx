@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 import api from "../api";
 import { Product, ProductionRecord } from "../types";
 import { useAuth } from "../context/AuthContext";
@@ -11,6 +12,7 @@ const Production: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [records, setRecords] = useState<ProductionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({
@@ -39,6 +41,8 @@ const Production: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const selectedProduct = products.find((p) => String(p.id) === form.product_id);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -47,6 +51,7 @@ const Production: React.FC = () => {
       setError("Товарды жана санды толтуруңуз");
       return;
     }
+    setSaving(true);
     try {
       await api.post("/production/", {
         product_id: Number(form.product_id),
@@ -60,6 +65,8 @@ const Production: React.FC = () => {
       setTimeout(() => setSuccess(""), 2500);
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Ката кетти");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -87,7 +94,9 @@ const Production: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Саны</label>
+          <label className="label-soft">
+            Саны {selectedProduct && <span className="text-ink-400">({selectedProduct.unit})</span>}
+          </label>
           <input
             type="number"
             step="0.01"
@@ -109,54 +118,56 @@ const Production: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">Эскертүү</label>
+          <label className="label-soft">Эскертүү (милдеттүү эмес)</label>
           <input
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
             className="input-pill"
-            placeholder="милдеттүү эмес"
           />
         </div>
-        {error && <div className="sm:col-span-4 text-sm text-clay-500">{error}</div>}
-        {success && <div className="sm:col-span-4 text-sm text-milk-600">{success}</div>}
+        {error && <div className="sm:col-span-4 text-sm text-clay-500 bg-clay-50 rounded-xl px-4 py-2.5">{error}</div>}
+        {success && <div className="sm:col-span-4 text-sm text-milk-700 bg-milk-50 rounded-xl px-4 py-2.5">{success}</div>}
         <div className="sm:col-span-4">
-          <button type="submit" className="btn-primary">
-            Катталуу
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : "Катталуу"}
           </button>
         </div>
       </form>
 
       <div className="card-soft overflow-hidden">
         {loading ? (
-          <div className="p-5 text-sm text-ink-400">Жүктөлүүдө...</div>
+          <div className="p-5 text-sm text-ink-400 flex items-center gap-2">
+            <Loader2 size={16} className="animate-spin" /> Жүктөлүүдө...
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-ink-400 border-b border-ink-50">
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Күнү</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Товар</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Саны</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Кимден</th>
-                  <th className="px-6 py-3.5"></th>
+                <tr className="bg-cream-50">
+                  <th className="table-head-cell">Күнү</th>
+                  <th className="table-head-cell">Товар</th>
+                  <th className="table-head-cell">Саны</th>
+                  <th className="table-head-cell">Кимден</th>
+                  <th className="table-head-cell"></th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((r) => (
-                  <tr key={r.id} className="border-b border-ink-50/60 last:border-0 hover:bg-cream-50/60 transition-colors">
-                    <td className="px-6 py-3.5 text-ink-500">{r.record_date}</td>
-                    <td className="px-6 py-3.5 font-medium text-ink-700">{r.product_name}</td>
-                    <td className="px-6 py-3.5">
-                      <span className="pill-tag bg-milk-50 text-milk-600">+{r.quantity}</span>
+                  <tr key={r.id} className="table-row">
+                    <td className="table-cell text-ink-500">{r.record_date}</td>
+                    <td className="table-cell font-medium text-ink-700">{r.product_name}</td>
+                    <td className="table-cell">
+                      <span className="pill-tag bg-milk-50 text-milk-700">+{r.quantity}</span>
                     </td>
-                    <td className="px-6 py-3.5 text-ink-500">{r.created_by_name}</td>
-                    <td className="px-6 py-3.5 text-right">
+                    <td className="table-cell text-ink-500">{r.created_by_name}</td>
+                    <td className="table-cell text-right">
                       {(user?.role === "admin" || user?.username) && (
                         <button
                           onClick={() => handleDelete(r.id)}
-                          className="text-clay-500 text-xs font-semibold hover:underline"
+                          className="btn-icon hover:bg-clay-50 hover:text-clay-600"
+                          aria-label="Өчүрүү"
                         >
-                          Өчүрүү
+                          <Trash2 size={15} />
                         </button>
                       )}
                     </td>

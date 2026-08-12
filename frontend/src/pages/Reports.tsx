@@ -70,7 +70,7 @@ const Reports: React.FC = () => {
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="input-pill"
+            className="input-pill font-mono"
           />
         </div>
         <div>
@@ -79,7 +79,7 @@ const Reports: React.FC = () => {
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="input-pill"
+            className="input-pill font-mono"
           />
         </div>
         <div>
@@ -105,16 +105,16 @@ const Reports: React.FC = () => {
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="card-soft p-4 text-center">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Жалпы өндүрүлдү</div>
-          <div className="font-display text-xl font-bold text-milk-600 mt-1">{totalProduced.toLocaleString()}</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">Жалпы өндүрүлдү</div>
+          <div className="font-mono text-xl font-bold text-milk-600 mt-1 tabular-nums">{totalProduced.toLocaleString()}</div>
         </div>
         <div className="card-soft p-4 text-center">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Жалпы сатылды</div>
-          <div className="font-display text-xl font-bold text-gold-600 mt-1">{totalSold.toLocaleString()}</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">Жалпы сатылды</div>
+          <div className="font-mono text-xl font-bold text-gold-600 mt-1 tabular-nums">{totalSold.toLocaleString()}</div>
         </div>
         <div className="card-soft p-4 text-center">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Жалпы киреше</div>
-          <div className="font-display text-xl font-bold text-plum-500 mt-1">{totalRevenue.toLocaleString()} сом</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-400">Жалпы киреше</div>
+          <div className="font-mono text-xl font-bold text-plum-500 mt-1 tabular-nums">{totalRevenue.toLocaleString()} сом</div>
         </div>
       </div>
 
@@ -123,15 +123,15 @@ const Reports: React.FC = () => {
         <div style={{ width: "100%", height: 280 }}>
           <ResponsiveContainer>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F5EFE2" />
-              <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#7A8A87" }} />
-              <YAxis tick={{ fontSize: 11, fill: "#7A8A87" }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#D9D5C6" />
+              <XAxis dataKey="period" tick={{ fontSize: 11, fill: "#4A473A", fontFamily: "JetBrains Mono" }} />
+              <YAxis tick={{ fontSize: 11, fill: "#4A473A", fontFamily: "JetBrains Mono" }} />
               <Tooltip
-                contentStyle={{ borderRadius: 16, border: "1px solid #F3F5F4", fontSize: 13 }}
+                contentStyle={{ borderRadius: 2, border: "1.5px solid #131209", fontSize: 13, fontFamily: "JetBrains Mono" }}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="produced" name="Өндүрүлдү" fill="#1F6F5C" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="sold" name="Сатылды" fill="#E0A428" radius={[8, 8, 0, 0]} />
+              <Legend wrapperStyle={{ fontSize: 12, fontFamily: "JetBrains Mono" }} />
+              <Bar dataKey="produced" name="Өндүрүлдү" fill="#22386D" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="sold" name="Сатылды" fill="#A06F0E" radius={[0, 0, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -144,22 +144,22 @@ const Reports: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-ink-400 border-b border-ink-50">
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Мезгил</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Товар</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Өндүрүлдү</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Сатылды</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Киреше</th>
+                <tr className="text-left text-ink-400 border-b-[1.5px] border-ink-900 bg-cream-100">
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Мезгил</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Товар</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Өндүрүлдү</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Сатылды</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Киреше</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, idx) => (
-                  <tr key={idx} className="border-b border-ink-50/60 last:border-0 hover:bg-cream-50/60 transition-colors">
-                    <td className="px-6 py-3.5 text-ink-500">{r.period}</td>
+                  <tr key={idx} className="border-b border-ink-100 last:border-0 hover:bg-cream-50 transition-colors">
+                    <td className="px-6 py-3.5 font-mono text-ink-500">{r.period}</td>
                     <td className="px-6 py-3.5 font-medium text-ink-700">{r.product_name}</td>
-                    <td className="px-6 py-3.5 text-milk-600">{r.produced.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 text-gold-600">{r.sold.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 text-plum-500">{r.revenue.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-mono text-milk-600 tabular-nums">{r.produced.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-mono text-gold-600 tabular-nums">{r.sold.toLocaleString()}</td>
+                    <td className="px-6 py-3.5 font-mono text-plum-500 tabular-nums">{r.revenue.toLocaleString()}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (

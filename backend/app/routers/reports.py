@@ -17,11 +17,11 @@ def dashboard(db: Session = Depends(get_db), _=Depends(auth.get_current_user)):
 
     today_produced = db.query(func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0)).filter(
         models.ProductionRecord.record_date == today
-    ).scalar()
+    ).scalar() or 0.0
     today_sold_row = db.query(
         func.coalesce(func.sum(models.SaleRecord.quantity), 0.0),
         func.coalesce(func.sum(models.SaleRecord.quantity * func.coalesce(models.SaleRecord.price, 0)), 0.0),
-    ).filter(models.SaleRecord.record_date == today).first()
+    ).filter(models.SaleRecord.record_date == today).first() or (0.0, 0.0)
     today_sold, today_revenue = today_sold_row
 
     products = db.query(models.Product).filter(models.Product.is_active == True).all()  # noqa

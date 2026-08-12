@@ -121,18 +121,18 @@ const Users: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-ink-400 border-b border-ink-50">
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Колдонуучу</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Аты-жөнү</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Ролу</th>
-                  <th className="px-6 py-3.5 font-semibold text-[11px] uppercase tracking-wide">Абал</th>
+                <tr className="text-left text-ink-400 border-b-[1.5px] border-ink-900 bg-cream-100">
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Колдонуучу</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Аты-жөнү</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Ролу</th>
+                  <th className="px-6 py-3.5 font-mono font-semibold text-[11px] uppercase tracking-wide">Абал</th>
                   <th className="px-6 py-3.5"></th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id} className="border-b border-ink-50/60 last:border-0 hover:bg-cream-50/60 transition-colors">
-                    <td className="px-6 py-3.5 font-medium text-ink-700">{u.username}</td>
+                  <tr key={u.id} className="border-b border-ink-100 last:border-0 hover:bg-cream-50 transition-colors">
+                    <td className="px-6 py-3.5 font-mono font-medium text-ink-700">{u.username}</td>
                     <td className="px-6 py-3.5 text-ink-600">{u.full_name}</td>
                     <td className="px-6 py-3.5">
                       <span

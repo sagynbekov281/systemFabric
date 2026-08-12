@@ -1,25 +1,29 @@
 import React, { useEffect, useState } from "react";
+import { Package, Factory, Receipt, Wallet, ArrowUp, ArrowDown } from "lucide-react";
 import api from "../api";
 import { DashboardSummary } from "../types";
 import { useAuth } from "../context/AuthContext";
 
 const StatCard: React.FC<{
   label: string;
-  value: string;
-  hint?: string;
-  accent: string;
-  chip: string;
-}> = ({ label, value, hint, accent, chip }) => (
-  <div className="card-soft p-5 relative overflow-hidden">
-    <div className={`absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-20 ${chip}`} />
-    <div className={`w-9 h-9 rounded-2xl flex items-center justify-center text-sm mb-3 ${accent}`}>
-      ●
+  icon: React.ElementType;
+  tint: string;
+  children: React.ReactNode;
+}> = ({ label, icon: Icon, tint, children }) => (
+  <div className="card-soft p-5">
+    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${tint}`}>
+      <Icon size={18} strokeWidth={2} />
     </div>
-    <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{label}</div>
-    <div className="font-display text-2xl font-bold text-ink-900 mt-0.5">{value}</div>
-    {hint && <div className="text-xs text-ink-400 mt-1">{hint}</div>}
+    <div className="text-[12px] font-medium text-ink-400">{label}</div>
+    <div className="mt-1">{children}</div>
   </div>
 );
+
+const stockStatus = (stock: number, minimum: number) => {
+  if (stock <= 0) return { label: "түгөндү", tone: "bg-clay-50 text-clay-600" };
+  if (stock <= minimum) return { label: "аз калды", tone: "bg-gold-50 text-gold-600" };
+  return { label: "жетиштүү", tone: "bg-milk-50 text-milk-700" };
+};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -43,9 +47,24 @@ const Dashboard: React.FC = () => {
     load();
   }, []);
 
-  if (loading) return <div className="text-ink-400 text-sm">Жүктөлүүдө...</div>;
-  if (error) return <div className="text-clay-500 text-sm">{error}</div>;
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="card-soft p-5 h-28 animate-pulse bg-ink-50/50" />
+        ))}
+      </div>
+    );
+  }
+  if (error) return <div className="text-sm text-clay-500 bg-clay-50 rounded-xl px-4 py-3 inline-block">{error}</div>;
   if (!data) return null;
+
+  // today_produced_by_unit: [{ unit, quantity }] — see note on DashboardSummary below.
+  const producedByUnit = data.today_produced_by_unit?.length
+    ? data.today_produced_by_unit
+    : [{ unit: "", quantity: data.today_produced }];
+
+  const lowStock = data.low_stock_products.filter((p) => p.stock <= p.minimum_stock);
 
   return (
     <div>
@@ -54,63 +73,82 @@ const Dashboard: React.FC = () => {
         <p className="text-sm text-ink-400 mt-1">Бүгүнкү жалпы көрсөткүчтөр</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Активдүү товарлар"
-          value={String(data.total_products)}
-          accent="bg-milk-50 text-milk-500"
-          chip="bg-milk-500"
-        />
-        <StatCard
-          label="Бүгүн өндүрүлдү"
-          value={data.today_produced.toLocaleString()}
-          accent="bg-milk-50 text-milk-500"
-          chip="bg-milk-500"
-        />
-        <StatCard
-          label="Бүгүн сатылды"
-          value={data.today_sold.toLocaleString()}
-          accent="bg-gold-50 text-gold-600"
-          chip="bg-gold-500"
-        />
-        <StatCard
-          label="Бүгүнкү киреше"
-          value={`${data.today_revenue.toLocaleString()} сом`}
-          accent="bg-plum-50 text-plum-500"
-          chip="bg-plum-500"
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Активдүү товарлар" icon={Package} tint="bg-milk-50 text-milk-600">
+          <div className="font-display text-2xl font-bold text-ink-900">{data.total_products}</div>
+        </StatCard>
+
+        <StatCard label="Бүгүн өндүрүлдү" icon={Factory} tint="bg-milk-50 text-milk-600">
+          <div className="space-y-0.5">
+            {producedByUnit.map((row, idx) => (
+              <div key={idx} className="font-display text-lg font-bold text-ink-900">
+                {row.quantity.toLocaleString()} {row.unit}
+              </div>
+            ))}
+          </div>
+        </StatCard>
+
+        <StatCard label="Бүгүн сатылды" icon={Receipt} tint="bg-gold-50 text-gold-600">
+          <div className="font-display text-2xl font-bold text-ink-900">{data.today_sold.toLocaleString()}</div>
+        </StatCard>
+
+        <StatCard label="Бүгүнкү киреше" icon={Wallet} tint="bg-plum-50 text-plum-500">
+          <div className="font-display text-2xl font-bold text-ink-900">{data.today_revenue.toLocaleString()} сом</div>
+        </StatCard>
       </div>
 
-      <div className="card-soft p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-semibold text-ink-900">Кампадагы калдыктар (аз калгандар)</h2>
-          <span className="pill-tag bg-cream-100 text-ink-500">
-            Жалпы: {data.total_stock.toLocaleString()}
-          </span>
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="card-soft p-5">
+          <h2 className="font-display font-semibold text-ink-900 mb-3">Акыркы операциялар</h2>
+          <div className="divide-y divide-ink-50">
+            {(data.recent_operations || []).slice(0, 8).map((op, idx) => (
+              <div key={idx} className="flex items-center gap-3 py-2.5 text-sm">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    op.type === "production" ? "bg-milk-50 text-milk-600" : "bg-gold-50 text-gold-600"
+                  }`}
+                >
+                  {op.type === "production" ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-ink-700 font-medium truncate">{op.product_name}</div>
+                  <div className="text-[12px] text-ink-400">
+                    {op.time} · {op.user_name}
+                  </div>
+                </div>
+                <div className={`font-display font-semibold ${op.type === "production" ? "text-milk-600" : "text-gold-600"}`}>
+                  {op.type === "production" ? "+" : "-"}
+                  {op.quantity} {op.unit}
+                </div>
+              </div>
+            ))}
+            {(!data.recent_operations || data.recent_operations.length === 0) && (
+              <div className="text-sm text-ink-400 py-4">Операциялар табылган жок</div>
+            )}
+          </div>
         </div>
-        <div className="space-y-2">
-          {data.low_stock_products.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center justify-between text-sm px-4 py-3 rounded-2xl bg-cream-50/80"
-            >
-              <span className="text-ink-700 font-medium">{p.name}</span>
-              <span
-                className={`pill-tag ${
-                  p.stock <= 0
-                    ? "bg-clay-50 text-clay-500"
-                    : p.stock < 20
-                    ? "bg-gold-50 text-gold-600"
-                    : "bg-milk-50 text-milk-600"
-                }`}
-              >
-                {p.stock.toLocaleString()} {p.unit}
-              </span>
-            </div>
-          ))}
-          {data.low_stock_products.length === 0 && (
-            <div className="text-sm text-ink-400">Дайын товар жок</div>
-          )}
+
+        <div className="card-soft p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display font-semibold text-ink-900">Кампада аз калган товарлар</h2>
+            <span className="pill-tag bg-cream-100 text-ink-500">{lowStock.length}</span>
+          </div>
+          <div className="space-y-2">
+            {lowStock.map((p) => {
+              const status = stockStatus(p.stock, p.minimum_stock);
+              return (
+                <div key={p.id} className="flex items-center justify-between text-sm px-3.5 py-2.5 rounded-xl bg-cream-50">
+                  <span className="text-ink-700 font-medium">{p.name}</span>
+                  <span className={`pill-tag ${status.tone}`}>
+                    {p.stock.toLocaleString()} {p.unit} · {status.label}
+                  </span>
+                </div>
+              );
+            })}
+            {lowStock.length === 0 && (
+              <div className="text-sm text-ink-400 py-2">Бардык товарлар жетиштүү</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
