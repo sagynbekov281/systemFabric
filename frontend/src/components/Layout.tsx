@@ -54,6 +54,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const handleLogout = () => {
     logout();
     navigate("/login");
+    setMenuOpen(false);
   };
 
   const LangToggle = () => (
@@ -126,7 +127,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-cream-50 flex">
+    <div className="min-h-screen bg-cream-50 flex flex-col md:flex-row">
       {/* Desktop / tablet sidebar */}
       <aside className="hidden md:flex md:flex-col w-56 lg:w-64 shrink-0 sidebar-dark p-3 lg:p-4">
         <div className="flex items-center gap-2.5 px-2 py-4 lg:py-5 relative z-10">
@@ -162,27 +163,30 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 sidebar-dark flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2 relative z-10 min-w-0">
-          <div className="brand-icon-tile w-8 h-8">
-            <DropMark size={18} />
+      {/* Mobile header + drawer — a single sticky block that lives in normal document
+          flow. The drawer renders as a normal sibling right after the header row
+          (not an absolutely-positioned overlay with a guessed pixel offset), so it
+          can never overlap or get clipped by the header regardless of its real
+          rendered height on any device. */}
+      <div className="md:hidden sticky top-0 z-30 sidebar-dark">
+        <div className="flex items-center justify-between px-4 py-3 relative z-10">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 text-white transition-colors duration-150 hover:bg-white/20 shrink-0"
+            aria-label={t("profile.menu")}
+          >
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-display font-bold text-white text-sm truncate">{t("app.name")}</span>
+            <div className="brand-icon-tile w-8 h-8 shrink-0">
+              <DropMark size={18} />
+            </div>
           </div>
-          <span className="font-display font-bold text-white text-sm truncate">{t("app.name")}</span>
         </div>
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="relative z-10 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 text-white transition-colors duration-150 hover:bg-white/20 shrink-0"
-          aria-label={t("profile.menu")}
-        >
-          {menuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
 
-      {/* Mobile menu drawer */}
-      {menuOpen && (
-        <div className="md:hidden fixed top-[57px] left-0 right-0 bottom-0 z-20 sidebar-dark overflow-y-auto animate-slide-down">
-          <nav className="px-3 py-4 space-y-1 relative z-10">
+        {menuOpen && (
+          <nav className="relative z-10 px-3 pb-4 pt-1 space-y-1 max-h-[calc(100vh-56px)] overflow-y-auto animate-slide-down">
             {visibleItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -203,10 +207,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <ProfileCard />
             </div>
           </nav>
-        </div>
-      )}
+        )}
+      </div>
 
-      <main className="flex-1 min-w-0 pt-[57px] md:pt-0">
+      <main className="flex-1 min-w-0">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 lg:p-10">{children}</div>
       </main>
 

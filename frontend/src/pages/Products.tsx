@@ -203,7 +203,7 @@ const Products: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-cream-50">
-                  <th className="table-head-cell">{t("products.table.name")}</th>
+                  <th className="table-head-cell sticky left-0 bg-cream-50 z-10">{t("products.table.name")}</th>
                   <th className="table-head-cell">{t("products.table.unit")}</th>
                   <th className="table-head-cell">{t("products.table.price")}</th>
                   <th className="table-head-cell">{t("products.table.stock")}</th>
@@ -216,8 +216,7 @@ const Products: React.FC = () => {
                   const status = stockStatus(p.stock, p.minimum_stock, t);
                   return (
                     <tr key={p.id} className="table-row">
-                      <td className="table-cell font-medium text-ink-700">{p.name}</td>
-                      <td className="table-cell text-ink-500">{p.unit}</td>
+<td className="table-cell font-medium text-ink-700 sticky left-0 bg-white z-10">{p.name}</td>                      <td className="table-cell text-ink-500">{p.unit}</td>
                       <td className="table-cell text-ink-500">{p.price != null ? p.price.toLocaleString() : "—"}</td>
                       <td className="table-cell">
                         <span className={`pill-tag ${status.tone}`}>{p.stock.toLocaleString()}</span>
