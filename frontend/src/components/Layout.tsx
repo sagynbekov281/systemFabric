@@ -45,6 +45,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const profileRef = useRef<HTMLDivElement>(null);
 
   const visibleItems = navItems.filter((i) => !i.adminOnly || user?.role === "admin");
+  const canChangeOwnPassword = user?.role === "admin";
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -112,16 +113,18 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <UserIcon size={16} className="text-ink-400" />
             {t("profile.myProfile")}
           </button>
-          <button
-            className="dropdown-item"
-            onClick={() => {
-              setProfileMenuOpen(false);
-              setPasswordModalOpen(true);
-            }}
-          >
-            <KeyRound size={16} className="text-ink-400" />
-            {t("profile.changePassword")}
-          </button>
+          {canChangeOwnPassword && (
+            <button
+              className="dropdown-item"
+              onClick={() => {
+                setProfileMenuOpen(false);
+                setPasswordModalOpen(true);
+              }}
+            >
+              <KeyRound size={16} className="text-ink-400" />
+              {t("profile.changePassword")}
+            </button>
+          )}
           <button className="dropdown-item text-clay-500 hover:bg-clay-50 hover:text-clay-600" onClick={handleLogout}>
             <LogOut size={16} />
             {t("profile.logout")}
@@ -242,9 +245,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </Modal>
 
-      <Modal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} title={t("profile.changePassword")}>
-        <ChangePasswordForm onDone={() => setPasswordModalOpen(false)} />
-      </Modal>
+      {canChangeOwnPassword && (
+        <Modal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} title={t("profile.changePassword")}>
+          <ChangePasswordForm onDone={() => setPasswordModalOpen(false)} />
+        </Modal>
+      )}
     </div>
   );
 };

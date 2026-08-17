@@ -5,8 +5,10 @@ import { User, PaginatedResponse } from "../types";
 import OvalDropdown from "../components/OvalDropdown";
 import Pagination from "../components/Pagination";
 import ConfirmModal from "../components/ConfirmModal";
+import Modal from "../components/Modal";
 
 const emptyForm = { username: "", full_name: "", role: "employee" as "employee" | "admin", password: "" };
+const emptyEditForm = { username: "", full_name: "", role: "employee" as "employee" | "admin", password: "" };
 const PAGE_SIZE = 20;
 
 const Users: React.FC = () => {
@@ -21,6 +23,11 @@ const Users: React.FC = () => {
   const [listError, setListError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [editTarget, setEditTarget] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState(emptyEditForm);
+  const [editError, setEditError] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = async (targetPage: number = page) => {
     setLoading(true);
@@ -58,6 +65,42 @@ const Users: React.FC = () => {
   const toggleActive = async (u: User) => {
     await api.put(`/users/${u.id}`, { is_active: !u.is_active });
     load(page);
+  };
+
+  const openEdit = (u: User) => {
+    setEditTarget(u);
+    setEditForm({ username: u.username, full_name: u.full_name, role: u.role, password: "" });
+    setEditError("");
+  };
+
+  const closeEdit = () => {
+    setEditTarget(null);
+    setEditForm(emptyEditForm);
+    setEditError("");
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    setEditError("");
+    setEditSaving(true);
+    try {
+      const payload: Record<string, any> = {
+        username: editForm.username,
+        full_name: editForm.full_name,
+        role: editForm.role,
+      };
+      if (editForm.password) {
+        payload.password = editForm.password;
+      }
+      await api.put(`/users/${editTarget.id}`, payload);
+      closeEdit();
+      load(page);
+    } catch (err: any) {
+      setEditError(err?.response?.data?.detail || t("users.genericError"));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const confirmDelete = async () => {
@@ -175,6 +218,9 @@ const Users: React.FC = () => {
                     {u.is_active ? t("users.active") : t("users.inactive")}
                   </span>
                   <div className="flex items-center gap-3">
+                    <button onClick={() => openEdit(u)} className="text-plum-500 text-xs font-semibold">
+                      {t("users.edit")}
+                    </button>
                     <button onClick={() => toggleActive(u)} className="text-sprout-700 text-xs font-semibold">
                       {u.is_active ? t("users.deactivate") : t("users.activate")}
                     </button>
@@ -224,6 +270,12 @@ const Users: React.FC = () => {
                       </td>
                       <td className="px-6 py-3.5 text-right whitespace-nowrap">
                         <button
+                          onClick={() => openEdit(u)}
+                          className="text-plum-500 text-xs font-semibold mr-4 hover:underline"
+                        >
+                          {t("users.edit")}
+                        </button>
+                        <button
                           onClick={() => toggleActive(u)}
                           className="text-sprout-700 text-xs font-semibold mr-4 hover:underline"
                         >
@@ -257,6 +309,55 @@ const Users: React.FC = () => {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      <Modal open={!!editTarget} onClose={closeEdit} title={t("users.edit")}>
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div>
+            <label className="label-soft">{t("users.username")}</label>
+            <input
+              required
+              value={editForm.username}
+              onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+              className="input-pill"
+            />
+          </div>
+          <div>
+            <label className="label-soft">{t("users.fullName")}</label>
+            <input
+              required
+              value={editForm.full_name}
+              onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+              className="input-pill"
+            />
+          </div>
+          <div>
+            <label className="label-soft">{t("users.role")}</label>
+            <OvalDropdown
+              value={editForm.role}
+              onChange={(value) => setEditForm({ ...editForm, role: value as "employee" | "admin" })}
+              options={[
+                { value: "employee", label: t("users.roleOptions.employee") },
+                { value: "admin", label: t("users.roleOptions.admin") },
+              ]}
+              placeholder={t("users.select")}
+            />
+          </div>
+          <div>
+            <label className="label-soft">{t("users.newPasswordOptional")}</label>
+            <input
+              type="password"
+              value={editForm.password}
+              onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+              className="input-pill"
+              placeholder={t("users.leaveBlankToKeep")}
+            />
+          </div>
+          {editError && <div className="text-sm text-clay-500 bg-clay-50 rounded-xl px-4 py-2.5">{editError}</div>}
+          <button type="submit" disabled={editSaving} className="btn-primary w-full">
+            {editSaving ? <span className="spinner" /> : t("users.save")}
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 };

@@ -52,6 +52,13 @@ def update_user(user_id: int, payload: schemas.UserUpdate, db: Session = Depends
 
     data = payload.model_dump(exclude_unset=True)
 
+    if "username" in data and data["username"] and data["username"] != user.username:
+        existing_username = db.query(models.User).filter(
+            models.User.username == data["username"], models.User.id != user_id
+        ).first()
+        if existing_username:
+            raise HTTPException(status_code=400, detail="Мындай колдонуучунун аты мурунтан бар")
+
     if data.get("role") == models.UserRole.admin and user.role != models.UserRole.admin:
         existing_admin = db.query(models.User).filter(
             models.User.role == models.UserRole.admin, models.User.id != user_id
@@ -77,9 +84,6 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current=Depends(aut
     if not user:
         raise HTTPException(status_code=404, detail="Колдонуучу табылган жок")
 
-    # A user with production/sale/return records can't be hard-deleted — that would
-    # break the "created_by" reference on all their historical records and corrupt
-    # reports. Ask to deactivate instead, which keeps the history intact.
     has_records = (
         db.query(models.ProductionRecord).filter(models.ProductionRecord.created_by == user_id).first() is not None
         or db.query(models.SaleRecord).filter(models.SaleRecord.created_by == user_id).first() is not None
