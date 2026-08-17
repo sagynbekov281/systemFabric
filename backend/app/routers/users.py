@@ -1,5 +1,4 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, auth
@@ -8,9 +7,18 @@ from ..database import get_db
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
-@router.get("/", response_model=List[schemas.UserOut])
-def list_users(db: Session = Depends(get_db), _=Depends(auth.require_admin)):
-    return db.query(models.User).order_by(models.User.id).all()
+@router.get("/", response_model=schemas.UserListOut)
+def list_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    _=Depends(auth.require_admin),
+):
+    query = db.query(models.User)
+    total = query.count()
+    users = query.order_by(models.User.id).offset((page - 1) * page_size).limit(page_size).all()
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    return schemas.UserListOut(items=users, total=total, page=page, page_size=page_size, total_pages=total_pages)
 
 
 @router.post("/", response_model=schemas.UserOut)
@@ -18,6 +26,12 @@ def create_user(payload: schemas.UserCreate, db: Session = Depends(get_db), _=De
     existing = db.query(models.User).filter(models.User.username == payload.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Мындай колдонуучунун аты мурунтан бар")
+
+    if payload.role == models.UserRole.admin:
+        existing_admin = db.query(models.User).filter(models.User.role == models.UserRole.admin).first()
+        if existing_admin:
+            raise HTTPException(status_code=400, detail="Системада бир гана хозяин (администратор) болушу мүмкүн")
+
     user = models.User(
         username=payload.username,
         full_name=payload.full_name,
@@ -35,7 +49,16 @@ def update_user(user_id: int, payload: schemas.UserUpdate, db: Session = Depends
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Колдонуучу табылган жок")
+
     data = payload.model_dump(exclude_unset=True)
+
+    if data.get("role") == models.UserRole.admin and user.role != models.UserRole.admin:
+        existing_admin = db.query(models.User).filter(
+            models.User.role == models.UserRole.admin, models.User.id != user_id
+        ).first()
+        if existing_admin:
+            raise HTTPException(status_code=400, detail="Системада бир гана хозяин (администратор) болушу мүмкүн")
+
     if "password" in data and data["password"]:
         user.hashed_password = auth.get_password_hash(data.pop("password"))
     for key, value in data.items():
@@ -53,6 +76,22 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current=Depends(aut
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Колдонуучу табылган жок")
+
+    # A user with production/sale/return records can't be hard-deleted — that would
+    # break the "created_by" reference on all their historical records and corrupt
+    # reports. Ask to deactivate instead, which keeps the history intact.
+    has_records = (
+        db.query(models.ProductionRecord).filter(models.ProductionRecord.created_by == user_id).first() is not None
+        or db.query(models.SaleRecord).filter(models.SaleRecord.created_by == user_id).first() is not None
+        or db.query(models.ReturnRecord).filter(models.ReturnRecord.created_by == user_id).first() is not None
+    )
+    if has_records:
+        raise HTTPException(
+            status_code=400,
+            detail="Бул кызматкерде каттаган операциялары бар, андыктан аны өчүрүүгө болбойт. "
+                   "Анын ордуна аны токтотуңуз (активсиз кылыңыз).",
+        )
+
     db.delete(user)
     db.commit()
     return {"ok": True}

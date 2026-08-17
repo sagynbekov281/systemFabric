@@ -1,10 +1,11 @@
 from datetime import date
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, auth
 from ..database import get_db
+from ..timezone_utils import local_today
 
 router = APIRouter(prefix="/api/production", tags=["production"])
 
@@ -23,11 +24,13 @@ def _to_out(r: models.ProductionRecord) -> schemas.ProductionOut:
     )
 
 
-@router.get("/", response_model=List[schemas.ProductionOut])
+@router.get("/", response_model=schemas.ProductionListOut)
 def list_production(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     product_id: Optional[int] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
     _=Depends(auth.get_current_user),
 ):
@@ -38,8 +41,19 @@ def list_production(
         query = query.filter(models.ProductionRecord.record_date <= date_to)
     if product_id:
         query = query.filter(models.ProductionRecord.product_id == product_id)
-    records = query.order_by(models.ProductionRecord.record_date.desc(), models.ProductionRecord.id.desc()).all()
-    return [_to_out(r) for r in records]
+
+    total = query.count()
+    records = (
+        query.order_by(models.ProductionRecord.record_date.desc(), models.ProductionRecord.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    return schemas.ProductionListOut(
+        items=[_to_out(r) for r in records], total=total, page=page, page_size=page_size, total_pages=total_pages
+    )
 
 
 @router.post("/", response_model=schemas.ProductionOut)
@@ -54,7 +68,7 @@ def create_production(
     record = models.ProductionRecord(
         product_id=payload.product_id,
         quantity=payload.quantity,
-        record_date=payload.record_date or date.today(),
+        record_date=payload.record_date or local_today.today(),
         note=payload.note,
         created_by=current_user.id,
     )

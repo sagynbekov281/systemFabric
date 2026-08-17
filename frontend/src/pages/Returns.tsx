@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../api";
-import { Product, ProductionRecord, PaginatedResponse } from "../types";
-import { useAuth } from "../context/AuthContext";
+import { Product, ReturnRecord, PaginatedResponse } from "../types";
 import OvalDropdown from "../components/OvalDropdown";
 import Pagination from "../components/Pagination";
 import ConfirmModal from "../components/ConfirmModal";
@@ -17,29 +16,29 @@ const todayStr = () => {
 };
 const PAGE_SIZE = 20;
 
-const Production: React.FC = () => {
-  const { user } = useAuth();
+const Returns: React.FC = () => {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
-  const [records, setRecords] = useState<ProductionRecord[]>([]);
+  const [records, setRecords] = useState<ReturnRecord[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState<ProductionRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ReturnRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     product_id: "",
     quantity: "",
+    customer: "",
     record_date: todayStr(),
     note: "",
   });
 
   const loadRecords = async (targetPage: number = page) => {
     setLoading(true);
-    const r = await api.get<PaginatedResponse<ProductionRecord>>("/production/", {
+    const r = await api.get<PaginatedResponse<ReturnRecord>>("/returns/", {
       params: { page: targetPage, page_size: PAGE_SIZE },
     });
     setRecords(r.data.items);
@@ -68,30 +67,29 @@ const Production: React.FC = () => {
     loadRecords(newPage);
   };
 
-  const selectedProduct = products.find((p) => String(p.id) === form.product_id);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
     if (!form.product_id || !form.quantity) {
-      setError(t("production.validationError"));
+      setError(t("returns.validationError"));
       return;
     }
     setSaving(true);
     try {
-      await api.post("/production/", {
+      await api.post("/returns/", {
         product_id: Number(form.product_id),
         quantity: Number(form.quantity),
+        customer: form.customer || null,
         record_date: form.record_date,
         note: form.note || null,
       });
-      setSuccess(t("production.success"));
-      setForm({ ...form, quantity: "", note: "" });
+      setSuccess(t("returns.success"));
+      setForm({ ...form, quantity: "", customer: "", note: "" });
       loadRecords(1);
       setTimeout(() => setSuccess(""), 2500);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || t("production.genericError"));
+      setError(err?.response?.data?.detail || t("returns.genericError"));
     } finally {
       setSaving(false);
     }
@@ -101,7 +99,7 @@ const Production: React.FC = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await api.delete(`/production/${deleteTarget.id}`);
+      await api.delete(`/returns/${deleteTarget.id}`);
       const shouldStepBack = records.length === 1 && page > 1;
       setDeleteTarget(null);
       loadRecords(shouldStepBack ? page - 1 : page);
@@ -113,24 +111,22 @@ const Production: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-xl sm:text-2xl font-bold text-ink-900">{t("production.title")}</h1>
-        <p className="text-sm text-ink-400 mt-1">{t("production.subtitle")}</p>
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-ink-900">{t("returns.title")}</h1>
+        <p className="text-sm text-ink-400 mt-1">{t("returns.subtitle")}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="card-soft p-5 sm:p-6 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <form onSubmit={handleSubmit} className="card-soft p-5 sm:p-6 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div>
-          <label className="label-soft">{t("production.product")}</label>
+          <label className="label-soft">{t("returns.product")}</label>
           <OvalDropdown
             value={form.product_id}
             onChange={(value) => setForm({ ...form, product_id: value })}
             options={products.map((p) => ({ value: String(p.id), label: p.name }))}
-            placeholder={t("production.select")}
+            placeholder={t("returns.select")}
           />
         </div>
         <div>
-          <label className="label-soft">
-            {t("production.quantity")} {selectedProduct && <span className="text-ink-400">({selectedProduct.unit})</span>}
-          </label>
+          <label className="label-soft">{t("returns.quantity")}</label>
           <input
             type="number"
             step="0.01"
@@ -143,7 +139,16 @@ const Production: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">{t("production.date")}</label>
+          <label className="label-soft">{t("returns.customer")}</label>
+          <input
+            value={form.customer}
+            onChange={(e) => setForm({ ...form, customer: e.target.value })}
+            className="input-pill"
+            placeholder={t("returns.optional")}
+          />
+        </div>
+        <div>
+          <label className="label-soft">{t("returns.date")}</label>
           <input
             type="date"
             value={form.record_date}
@@ -152,28 +157,29 @@ const Production: React.FC = () => {
           />
         </div>
         <div>
-          <label className="label-soft">{t("production.note")}</label>
+          <label className="label-soft">{t("returns.note")}</label>
           <input
             value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
             className="input-pill"
+            placeholder={t("returns.optional")}
           />
         </div>
-        {error && <div className="sm:col-span-2 lg:col-span-4 text-sm text-clay-500 bg-clay-50 rounded-xl px-4 py-2.5">{error}</div>}
-        {success && <div className="sm:col-span-2 lg:col-span-4 text-sm text-sprout-700 bg-sprout-50 rounded-xl px-4 py-2.5">{success}</div>}
-        <div className="sm:col-span-2 lg:col-span-4">
+        {error && <div className="sm:col-span-2 lg:col-span-5 text-sm text-clay-500 bg-clay-50 rounded-xl px-4 py-2.5">{error}</div>}
+        {success && <div className="sm:col-span-2 lg:col-span-5 text-sm text-sprout-700 bg-sprout-50 rounded-xl px-4 py-2.5">{success}</div>}
+        <div className="sm:col-span-2 lg:col-span-5">
           <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? <Loader2 size={16} className="animate-spin" /> : t("production.submit")}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : t("returns.submit")}
           </button>
         </div>
       </form>
 
       {loading ? (
         <div className="card-soft p-5 text-sm text-ink-400 flex items-center gap-2">
-          <Loader2 size={16} className="animate-spin" /> {t("production.loading")}
+          <Loader2 size={16} className="animate-spin" /> {t("returns.loading")}
         </div>
       ) : records.length === 0 ? (
-        <div className="card-soft px-6 py-10 text-center text-ink-400">{t("production.noRecords")}</div>
+        <div className="card-soft px-6 py-10 text-center text-ink-400">{t("returns.noRecords")}</div>
       ) : (
         <>
           <div className="sm:hidden space-y-3">
@@ -185,18 +191,17 @@ const Production: React.FC = () => {
                     <div className="text-xs text-ink-400 mt-0.5">
                       {r.record_date} · {r.created_by_name}
                     </div>
+                    {r.customer && <div className="text-xs text-ink-400 mt-0.5">{r.customer}</div>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="pill-tag bg-sprout-100 text-sprout-700">+{r.quantity}</span>
-                    {(user?.role === "admin" || user?.username) && (
-                      <button
-                        onClick={() => setDeleteTarget(r)}
-                        className="btn-icon hover:bg-clay-50 hover:text-clay-600"
-                        aria-label={t("production.delete")}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
+                    <span className="pill-tag bg-plum-50 text-plum-500">↺ {r.quantity}</span>
+                    <button
+                      onClick={() => setDeleteTarget(r)}
+                      className="btn-icon hover:bg-clay-50 hover:text-clay-600"
+                      aria-label={t("returns.delete")}
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -208,10 +213,11 @@ const Production: React.FC = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-cream-50">
-                    <th className="table-head-cell sticky left-0 bg-cream-50 z-10">{t("production.table.date")}</th>
-                    <th className="table-head-cell">{t("production.table.product")}</th>
-                    <th className="table-head-cell">{t("production.table.quantity")}</th>
-                    <th className="table-head-cell">{t("production.table.createdBy")}</th>
+                    <th className="table-head-cell sticky left-0 bg-cream-50 z-10">{t("returns.table.date")}</th>
+                    <th className="table-head-cell">{t("returns.table.product")}</th>
+                    <th className="table-head-cell">{t("returns.table.quantity")}</th>
+                    <th className="table-head-cell">{t("returns.table.customer")}</th>
+                    <th className="table-head-cell">{t("returns.table.createdBy")}</th>
                     <th className="table-head-cell"></th>
                   </tr>
                 </thead>
@@ -221,19 +227,18 @@ const Production: React.FC = () => {
                       <td className="table-cell text-ink-500 sticky left-0 bg-white z-10">{r.record_date}</td>
                       <td className="table-cell font-medium text-ink-700">{r.product_name}</td>
                       <td className="table-cell">
-                        <span className="pill-tag bg-sprout-100 text-sprout-700">+{r.quantity}</span>
+                        <span className="pill-tag bg-plum-50 text-plum-500">↺ {r.quantity}</span>
                       </td>
+                      <td className="table-cell text-ink-500">{r.customer ?? "—"}</td>
                       <td className="table-cell text-ink-500">{r.created_by_name}</td>
                       <td className="table-cell text-right">
-                        {(user?.role === "admin" || user?.username) && (
-                          <button
-                            onClick={() => setDeleteTarget(r)}
-                            className="btn-icon hover:bg-clay-50 hover:text-clay-600"
-                            aria-label={t("production.delete")}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setDeleteTarget(r)}
+                          className="btn-icon hover:bg-clay-50 hover:text-clay-600"
+                          aria-label={t("returns.delete")}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -249,8 +254,8 @@ const Production: React.FC = () => {
       <ConfirmModal
         open={!!deleteTarget}
         title={t("common.confirmTitle")}
-        message={t("production.deleteConfirm")}
-        confirmLabel={t("production.delete")}
+        message={t("returns.deleteConfirm")}
+        confirmLabel={t("returns.delete")}
         cancelLabel={t("common.cancel")}
         loading={deleting}
         onConfirm={confirmDelete}
@@ -260,4 +265,4 @@ const Production: React.FC = () => {
   );
 };
 
-export default Production;
+export default Returns;

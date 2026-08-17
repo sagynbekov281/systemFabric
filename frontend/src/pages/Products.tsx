@@ -2,17 +2,18 @@ import React, { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../api";
-import { Product } from "../types";
+import { Product, PaginatedResponse } from "../types";
 import { useAuth } from "../context/AuthContext";
 import OvalDropdown from "../components/OvalDropdown";
 import Modal from "../components/Modal";
+import Pagination from "../components/Pagination";
 
 const emptyForm = { name: "", unit: "литр", price: "", minimum_stock: "" };
+const PAGE_SIZE = 20;
 
 const isValidName = (name: string) => {
   const trimmed = name.trim();
   if (trimmed.length < 2) return false;
-  // reject purely numeric junk like "234" or "876678"
   if (/^\d+$/.test(trimmed)) return false;
   return true;
 };
@@ -20,7 +21,7 @@ const isValidName = (name: string) => {
 const stockStatus = (stock: number, minimum: number, t: (k: string) => string) => {
   if (stock <= 0) return { label: t("dashboard.stock.out"), tone: "bg-clay-50 text-clay-600" };
   if (stock <= minimum) return { label: t("dashboard.stock.low"), tone: "bg-gold-50 text-gold-600" };
-  return { label: t("dashboard.stock.ok"), tone: "bg-milk-50 text-milk-700" };
+  return { label: t("dashboard.stock.ok"), tone: "bg-sprout-100 text-sprout-700" };
 };
 
 const Products: React.FC = () => {
@@ -28,6 +29,8 @@ const Products: React.FC = () => {
   const { t } = useTranslation();
   const isAdmin = user?.role === "admin";
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -37,16 +40,25 @@ const Products: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const load = async () => {
+  const load = async (targetPage: number = page) => {
     setLoading(true);
-    const res = await api.get<Product[]>("/products/");
-    setProducts(res.data);
+    const res = await api.get<PaginatedResponse<Product>>("/products/", {
+      params: { page: targetPage, page_size: PAGE_SIZE },
+    });
+    setProducts(res.data.items);
+    setTotalPages(res.data.total_pages);
+    setPage(res.data.page);
     setLoading(false);
   };
 
   useEffect(() => {
-    load();
+    load(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handlePageChange = (newPage: number) => {
+    load(newPage);
+  };
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -78,7 +90,7 @@ const Products: React.FC = () => {
         await api.post("/products/", payload);
       }
       resetForm();
-      load();
+      load(editingId ? page : 1);
     } catch (err: any) {
       setError(err?.response?.data?.detail || t("products.genericError"));
     } finally {
@@ -101,11 +113,11 @@ const Products: React.FC = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      // Products already in use elsewhere should be archived rather than
-      // hard-deleted — /products/:id DELETE is expected to do that server-side.
       await api.delete(`/products/${deleteTarget.id}`);
       setDeleteTarget(null);
-      load();
+      // If we just deleted the last item on this page, step back a page
+      const shouldStepBack = products.length === 1 && page > 1;
+      load(shouldStepBack ? page - 1 : page);
     } finally {
       setDeleting(false);
     }
@@ -115,7 +127,7 @@ const Products: React.FC = () => {
     <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink-900">{t("products.title")}</h1>
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-ink-900">{t("products.title")}</h1>
           <p className="text-sm text-ink-400 mt-1">{t("products.subtitle")}</p>
         </div>
         {isAdmin && (
@@ -133,7 +145,7 @@ const Products: React.FC = () => {
       </div>
 
       {showForm && isAdmin && (
-        <form onSubmit={handleSubmit} className="card-soft p-6 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <form onSubmit={handleSubmit} className="card-soft p-5 sm:p-6 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="label-soft">{t("products.name")}</label>
             <input
@@ -193,78 +205,117 @@ const Products: React.FC = () => {
         </form>
       )}
 
-      <div className="card-soft overflow-hidden">
-        {loading ? (
-          <div className="p-5 text-sm text-ink-400 flex items-center gap-2">
-            <Loader2 size={16} className="animate-spin" /> {t("products.loading")}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-cream-50">
-                  <th className="table-head-cell sticky left-0 bg-cream-50 z-10">{t("products.table.name")}</th>
-                  <th className="table-head-cell">{t("products.table.unit")}</th>
-                  <th className="table-head-cell">{t("products.table.price")}</th>
-                  <th className="table-head-cell">{t("products.table.stock")}</th>
-                  <th className="table-head-cell">{t("products.table.status")}</th>
-                  {isAdmin && <th className="table-head-cell"></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => {
-                  const status = stockStatus(p.stock, p.minimum_stock, t);
-                  return (
-                    <tr key={p.id} className="table-row">
-<td className="table-cell font-medium text-ink-700 sticky left-0 bg-white z-10">{p.name}</td>                      <td className="table-cell text-ink-500">{p.unit}</td>
-                      <td className="table-cell text-ink-500">{p.price != null ? p.price.toLocaleString() : "—"}</td>
-                      <td className="table-cell">
-                        <span className={`pill-tag ${status.tone}`}>{p.stock.toLocaleString()}</span>
-                      </td>
-                      <td className="table-cell">
-                        <span
-                          className={`pill-tag ${
-                            p.is_active ? "bg-milk-50 text-milk-700" : "bg-ink-50 text-ink-400"
-                          }`}
-                        >
-                          {p.is_active ? t("products.active") : t("products.inactive")}
-                        </span>
-                      </td>
-                      {isAdmin && (
-                        <td className="table-cell text-right whitespace-nowrap">
+      {loading ? (
+        <div className="card-soft p-5 text-sm text-ink-400 flex items-center gap-2">
+          <Loader2 size={16} className="animate-spin" /> {t("products.loading")}
+        </div>
+      ) : products.length === 0 ? (
+        <div className="card-soft px-6 py-10 text-center text-ink-400">{t("products.noProducts")}</div>
+      ) : (
+        <>
+          {/* ---------- Mobile: card list ---------- */}
+          <div className="sm:hidden space-y-3">
+            {products.map((p) => {
+              const status = stockStatus(p.stock, p.minimum_stock, t);
+              return (
+                <div key={p.id} className="card-soft p-4">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-ink-900 truncate">{p.name}</div>
+                      <div className="text-xs text-ink-400 mt-0.5">{p.unit}</div>
+                    </div>
+                    {isAdmin && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => handleEdit(p)} className="btn-icon" aria-label={t("products.edit")}>
+                          <Pencil size={15} />
+                        </button>
+                        {p.is_active && (
                           <button
-                            onClick={() => handleEdit(p)}
-                            className="btn-icon"
-                            aria-label={t("products.edit")}
+                            onClick={() => setDeleteTarget(p)}
+                            className="btn-icon hover:bg-clay-50 hover:text-clay-600"
+                            aria-label={t("products.delete")}
                           >
-                            <Pencil size={15} />
+                            <Trash2 size={15} />
                           </button>
-                          {p.is_active && (
-                            <button
-                              onClick={() => setDeleteTarget(p)}
-                              className="btn-icon hover:bg-clay-50 hover:text-clay-600"
-                              aria-label={t("products.delete")}
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-                {products.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-ink-400">
-                      {t("products.noProducts")}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-sm pt-2 border-t border-ink-50">
+                    <span className="text-ink-500">{p.price != null ? `${p.price.toLocaleString()} сом` : "—"}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`pill-tag ${status.tone}`}>{p.stock.toLocaleString()}</span>
+                      <span className={`pill-tag ${p.is_active ? "bg-sprout-100 text-sprout-700" : "bg-ink-50 text-ink-400"}`}>
+                        {p.is_active ? t("products.active") : t("products.inactive")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+          {/* ---------- Tablet / desktop: table ---------- */}
+          <div className="hidden sm:block card-soft overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-cream-50">
+                    <th className="table-head-cell sticky left-0 bg-cream-50 z-10">{t("products.table.name")}</th>
+                    <th className="table-head-cell">{t("products.table.unit")}</th>
+                    <th className="table-head-cell">{t("products.table.price")}</th>
+                    <th className="table-head-cell">{t("products.table.stock")}</th>
+                    <th className="table-head-cell">{t("products.table.status")}</th>
+                    {isAdmin && <th className="table-head-cell"></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((p) => {
+                    const status = stockStatus(p.stock, p.minimum_stock, t);
+                    return (
+                      <tr key={p.id} className="table-row">
+                        <td className="table-cell font-medium text-ink-700 sticky left-0 bg-white z-10">{p.name}</td>
+                        <td className="table-cell text-ink-500">{p.unit}</td>
+                        <td className="table-cell text-ink-500">{p.price != null ? p.price.toLocaleString() : "—"}</td>
+                        <td className="table-cell">
+                          <span className={`pill-tag ${status.tone}`}>{p.stock.toLocaleString()}</span>
+                        </td>
+                        <td className="table-cell">
+                          <span
+                            className={`pill-tag ${
+                              p.is_active ? "bg-sprout-100 text-sprout-700" : "bg-ink-50 text-ink-400"
+                            }`}
+                          >
+                            {p.is_active ? t("products.active") : t("products.inactive")}
+                          </span>
+                        </td>
+                        {isAdmin && (
+                          <td className="table-cell text-right whitespace-nowrap">
+                            <button onClick={() => handleEdit(p)} className="btn-icon" aria-label={t("products.edit")}>
+                              <Pencil size={15} />
+                            </button>
+                            {p.is_active && (
+                              <button
+                                onClick={() => setDeleteTarget(p)}
+                                className="btn-icon hover:bg-clay-50 hover:text-clay-600"
+                                aria-label={t("products.delete")}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
+        </>
+      )}
 
       <Modal
         open={!!deleteTarget}

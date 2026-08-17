@@ -13,7 +13,10 @@ import {
   User as UserIcon,
   KeyRound,
   LogOut,
+  Undo2,
+  Warehouse as WarehouseIcon,
 } from "lucide-react";
+
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import DropMark from "./DropMark";
@@ -25,6 +28,8 @@ const navItems = [
   { to: "/products", key: "nav.products", icon: Package, adminOnly: false },
   { to: "/production", key: "nav.production", icon: Factory, adminOnly: false },
   { to: "/sales", key: "nav.sales", icon: Receipt, adminOnly: false },
+  { to: "/returns", key: "nav.returns", icon: Undo2, adminOnly: false },
+  { to: "/warehouse", key: "nav.warehouse", icon: WarehouseIcon, adminOnly: false },
   { to: "/reports", key: "nav.reports", icon: BarChart3, adminOnly: true },
   { to: "/users", key: "nav.users", icon: Users, adminOnly: true },
 ];

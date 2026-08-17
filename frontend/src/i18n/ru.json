@@ -1,11 +1,55 @@
 {
+ "nav": {
+  "dashboard": "Главная",
+  "products": "Товары",
+  "production": "Производство",
+  "sales": "Продажи",
+  "returns": "Возврат",
+  "warehouse": "Склад",
+  "reports": "Отчёты",
+  "users": "Сотрудники"
+},
+  "returns": {
+    "title": "Возврат",
+    "subtitle": "Регистрация товаров, возвращённых клиентом",
+    "product": "Товар",
+    "select": "Выбрать",
+    "quantity": "Количество",
+    "customer": "Клиент",
+    "optional": "необязательно",
+    "date": "Дата",
+    "note": "Примечание",
+    "validationError": "Заполните товар и количество",
+    "success": "Успешно сохранено!",
+    "genericError": "Произошла ошибка",
+    "submit": "Сохранить",
+    "loading": "Загрузка...",
+    "table": {
+      "date": "Дата",
+      "product": "Товар",
+      "quantity": "Количество",
+      "customer": "Клиент",
+      "createdBy": "Кем"
+    },
+    "noRecords": "Записи не найдены",
+    "delete": "Удалить",
+    "deleteConfirm": "Удалить эту запись?"
+  },
+  "warehouse": {
+    "title": "Склад",
+    "subtitle": "Остатки товаров на складе",
+    "totalStock": "Общий остаток",
+    "loading": "Загрузка...",
+    "noProducts": "Товары не найдены",
+    "table": { "name": "Название", "unit": "Единица", "stock": "Остаток", "status": "Статус" }
+  },
     
   "common": {
-    "loading": "Загрузка...",
-    "select": "Выбрать",
-    "noOptions": "Нет",
-    "close": "Закрыть"
+    "confirmTitle": "Подтверждение",
+    "cancel": "Отмена"
   },
+
+
   "changePassword": {
     "minLengthError": "Новый пароль должен содержать не менее 6 символов",
     "mismatchError": "Новые пароли не совпадают",
@@ -18,14 +62,7 @@
 },
 
   "app": { "name": "Молочный завод", "subtitle": "Внутреннее управление" },
-  "nav": {
-    "dashboard": "Главная",
-    "products": "Товары",
-    "production": "Производство",
-    "sales": "Продажи",
-    "reports": "Отчёты",
-    "users": "Сотрудники"
-  },
+
   "roles": { "admin": "Администратор", "employee": "Сотрудник" },
   "profile": {
     "myProfile": "Мой профиль",
@@ -51,7 +88,13 @@
     "noOperations": "Операции не найдены",
     "lowStock": "Товары на исходе",
     "allSufficient": "Все товары в достаточном количестве",
-    "stock": { "out": "закончился", "low": "мало осталось", "ok": "достаточно" }
+    "stock": { "out": "закончился", "low": "мало осталось", "ok": "достаточно" },
+        "monthTitle": "Итоги за этот месяц",
+    "monthProduced": "Произведено",
+    "monthSold": "Продано",
+    "monthReturned": "Возвращено",
+    "monthRevenue": "Доход",
+    "topProducts": "Самые прибыльные товары"
   },
   "production": {
     "title": "Производство",
@@ -169,7 +212,8 @@
     "deactivate": "Отключить",
     "activate": "Активировать",
     "delete": "Удалить",
-    "deleteConfirm": "Удалить пользователя {{name}}?"
+    "deleteConfirm": "Удалить пользователя {{name}}?",
+     "hasRecordsHint": "Этого сотрудника нельзя удалить — у него есть операции"
   },
   "sales": {
     "title": "Продажи",

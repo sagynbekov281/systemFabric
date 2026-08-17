@@ -1,11 +1,58 @@
-{
+
+  {
+    
+  "nav": {
+  "dashboard": "Башкы бет",
+  "products": "Товарлар",
+  "production": "Өндүрүш",
+  "sales": "Сатуу",
+  "returns": "Кайтаруу",
+  "warehouse": "Склад",
+  "reports": "Отчеттор",
+  "users": "Кызматкерлер"
+},
+  "returns": {
+    "title": "Кайтаруу",
+    "subtitle": "Кардардан кайтарылган товарларды каттоо",
+    "product": "Товар",
+    "select": "Тандоо",
+    "quantity": "Саны",
+    "customer": "Кардар",
+    "optional": "милдеттүү эмес",
+    "date": "Күнү",
+    "note": "Эскертүү",
+    "validationError": "Товарды жана санды толтуруңуз",
+    "success": "Ийгиликтүү катталды!",
+    "genericError": "Ката кетти",
+    "submit": "Катталуу",
+    "loading": "Жүктөлүүдө...",
+    "table": {
+      "date": "Күнү",
+      "product": "Товар",
+      "quantity": "Саны",
+      "customer": "Кардар",
+      "createdBy": "Кимден"
+    },
+    "noRecords": "Жазуулар жок",
+    "delete": "Өчүрүү",
+    "deleteConfirm": "Бул жазууну өчүрөсүзбү?"
+  },
+  "warehouse": {
+    "title": "Склад",
+    "subtitle": "Кампадагы товарлардын калдыгы",
+    "totalStock": "Жалпы калдык",
+    "loading": "Жүктөлүүдө...",
+    "noProducts": "Товарлар табылган жок",
+    "table": { "name": "Аталышы", "unit": "Бирдик", "stock": "Калдык", "status": "Абал" }
+  },
     
   "common": {
-    "loading": "Жүктөлүүдө...",
-    "select": "Тандоо",
-    "noOptions": "Жок",
-    "close": "Жабуу"
+    "confirmTitle": "Ырастоо",
+    "cancel": "Жокко чыгаруу"
   },
+ 
+ 
+
   "changePassword": {
     "minLengthError": "Жаңы пароль кеминде 6 белгиден турушу керек",
     "mismatchError": "Жаңы пароль дал келген жок",
@@ -18,14 +65,7 @@
   },
 
   "app": { "name": "Сүт заводу", "subtitle": "Ички башкаруу" },
-  "nav": {
-    "dashboard": "Башкы бет",
-    "products": "Товарлар",
-    "production": "Өндүрүш",
-    "sales": "Сатуу",
-    "reports": "Отчеттор",
-    "users": "Кызматкерлер"
-  },
+  
   "roles": { "admin": "Администратор", "employee": "Кызматкер" },
   "profile": {
     "myProfile": "Менин профилим",
@@ -39,6 +79,12 @@
     "active": "активдүү"
   },
   "dashboard": {
+       "monthTitle": "Ушул айдын жыйынтыгы",
+    "monthProduced": "Өндүрүлдү",
+    "monthSold": "Сатылды",
+    "monthReturned": "Кайтарылды",
+    "monthRevenue": "Киреше",
+    "topProducts": "Эң көп кирешелүү товарлар",
     "greeting": "Салам, {{name}}! 👋",
     "subtitle": "Бүгүнкү жалпы көрсөткүчтөр",
     "loadError": "Маалыматтарды жүктөөдө ката кетти",
@@ -169,7 +215,8 @@
     "deactivate": "Токтотуу",
     "activate": "Активдештирүү",
     "delete": "Өчүрүү",
-    "deleteConfirm": "{{name}} колдонуучусун өчүрөсүзбү?"
+    "deleteConfirm": "{{name}} колдонуучусун өчүрөсүзбү?",
+    "hasRecordsHint": "Бул кызматкерди өчүрүү мүмкүн эмес — анын операциялары бар"
   },
   "sales": {
     "title": "Сатуу",

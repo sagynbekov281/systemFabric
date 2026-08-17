@@ -9,6 +9,19 @@ export interface User {
   created_at: string;
 }
 
+export interface ReturnRecord {
+  id: number;
+  product_id: number;
+  product_name?: string;
+  quantity: number;
+  customer?: string | null;
+  record_date: string;
+  note?: string | null;
+  created_by: number;
+  created_by_name?: string;
+  created_at: string;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -81,5 +94,14 @@ export interface ReportRow {
   product_name: string;
   produced: number;
   sold: number;
+  returned: number;
   revenue: number;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }

@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -6,14 +6,16 @@ from sqlalchemy import func
 
 from .. import models, schemas, auth
 from ..database import get_db
+from ..timezone_utils import local_today
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
 @router.get("/dashboard", response_model=schemas.DashboardSummary)
 def dashboard(db: Session = Depends(get_db), _=Depends(auth.get_current_user)):
-    today = date.today()
-    total_products = db.query(models.Product).filter(models.Product.is_active == True).count()  # noqa
+    today = local_today()  # Бишкек датасы, сервердин UTC датасы эмес
+    products = db.query(models.Product).filter(models.Product.is_active == True).all()  # noqa
+    total_products = len(products)
 
     today_produced = db.query(func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0)).filter(
         models.ProductionRecord.record_date == today
@@ -24,17 +26,35 @@ def dashboard(db: Session = Depends(get_db), _=Depends(auth.get_current_user)):
     ).filter(models.SaleRecord.record_date == today).first() or (0.0, 0.0)
     today_sold, today_revenue = today_sold_row
 
-    products = db.query(models.Product).filter(models.Product.is_active == True).all()  # noqa
+    product_ids = [p.id for p in products]
+
+    produced_rows = (
+        db.query(models.ProductionRecord.product_id, func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0))
+        .filter(models.ProductionRecord.product_id.in_(product_ids))
+        .group_by(models.ProductionRecord.product_id)
+        .all()
+    ) if product_ids else []
+    sold_rows = (
+        db.query(models.SaleRecord.product_id, func.coalesce(func.sum(models.SaleRecord.quantity), 0.0))
+        .filter(models.SaleRecord.product_id.in_(product_ids))
+        .group_by(models.SaleRecord.product_id)
+        .all()
+    ) if product_ids else []
+    returned_rows = (
+        db.query(models.ReturnRecord.product_id, func.coalesce(func.sum(models.ReturnRecord.quantity), 0.0))
+        .filter(models.ReturnRecord.product_id.in_(product_ids))
+        .group_by(models.ReturnRecord.product_id)
+        .all()
+    ) if product_ids else []
+
+    produced_map = {pid: float(q) for pid, q in produced_rows}
+    sold_map = {pid: float(q) for pid, q in sold_rows}
+    returned_map = {pid: float(q) for pid, q in returned_rows}
+
     stock_list = []
     total_stock = 0.0
     for p in products:
-        produced = db.query(func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0)).filter(
-            models.ProductionRecord.product_id == p.id
-        ).scalar()
-        sold = db.query(func.coalesce(func.sum(models.SaleRecord.quantity), 0.0)).filter(
-            models.SaleRecord.product_id == p.id
-        ).scalar()
-        stock = float(produced) - float(sold)
+        stock = produced_map.get(p.id, 0.0) + returned_map.get(p.id, 0.0) - sold_map.get(p.id, 0.0)
         total_stock += stock
         item = schemas.ProductWithStock.model_validate(p)
         item.stock = stock
@@ -62,7 +82,7 @@ def summary_report(
 ):
     """
     Күндүк / жумалык / айлык / жылдык отчет.
-    Ар бир продукт боюнча ошол мезгилдеги өндүрүш, сатуу жана киреше.
+    Ар бир продукт боюнча ошол мезгилдеги өндүрүш, сатуу, кайтаруу жана киреше.
     """
     products = db.query(models.Product).all()
     product_map = {p.id: p for p in products}
@@ -75,6 +95,10 @@ def summary_report(
         models.SaleRecord.record_date >= date_from,
         models.SaleRecord.record_date <= date_to,
     ).all()
+    return_rows = db.query(models.ReturnRecord).filter(
+        models.ReturnRecord.record_date >= date_from,
+        models.ReturnRecord.record_date <= date_to,
+    ).all()
 
     def period_key(d: date) -> str:
         if group_by == "day":
@@ -86,16 +110,20 @@ def summary_report(
             return f"{d.year}-{d.month:02d}"
         return str(d.year)
 
-    agg = {}  # (period, product_id) -> {produced, sold, revenue}
+    agg = {}  # (period, product_id) -> {produced, sold, returned, revenue}
     for r in production_rows:
         key = (period_key(r.record_date), r.product_id)
-        agg.setdefault(key, {"produced": 0.0, "sold": 0.0, "revenue": 0.0})
+        agg.setdefault(key, {"produced": 0.0, "sold": 0.0, "returned": 0.0, "revenue": 0.0})
         agg[key]["produced"] += r.quantity
     for r in sale_rows:
         key = (period_key(r.record_date), r.product_id)
-        agg.setdefault(key, {"produced": 0.0, "sold": 0.0, "revenue": 0.0})
+        agg.setdefault(key, {"produced": 0.0, "sold": 0.0, "returned": 0.0, "revenue": 0.0})
         agg[key]["sold"] += r.quantity
         agg[key]["revenue"] += r.quantity * (r.price or 0)
+    for r in return_rows:
+        key = (period_key(r.record_date), r.product_id)
+        agg.setdefault(key, {"produced": 0.0, "sold": 0.0, "returned": 0.0, "revenue": 0.0})
+        agg[key]["returned"] += r.quantity
 
     result: List[schemas.ReportRow] = []
     for (period, product_id), vals in sorted(agg.items()):
@@ -106,6 +134,7 @@ def summary_report(
             product_name=product.name if product else "?",
             produced=vals["produced"],
             sold=vals["sold"],
+            returned=vals["returned"],
             revenue=vals["revenue"],
         ))
     return result

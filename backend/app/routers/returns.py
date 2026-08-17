@@ -2,22 +2,20 @@ from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from .. import models, schemas, auth
 from ..database import get_db
 from ..timezone_utils import local_today
 
-router = APIRouter(prefix="/api/sales", tags=["sales"])
+router = APIRouter(prefix="/api/returns", tags=["returns"])
 
 
-def _to_out(r: models.SaleRecord) -> schemas.SaleOut:
-    return schemas.SaleOut(
+def _to_out(r: models.ReturnRecord) -> schemas.ReturnOut:
+    return schemas.ReturnOut(
         id=r.id,
         product_id=r.product_id,
         product_name=r.product.name if r.product else None,
         quantity=r.quantity,
-        price=r.price,
         customer=r.customer,
         record_date=r.record_date,
         note=r.note,
@@ -27,8 +25,8 @@ def _to_out(r: models.SaleRecord) -> schemas.SaleOut:
     )
 
 
-@router.get("/", response_model=schemas.SaleListOut)
-def list_sales(
+@router.get("/", response_model=schemas.ReturnListOut)
+def list_returns(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     product_id: Optional[int] = None,
@@ -37,58 +35,39 @@ def list_sales(
     db: Session = Depends(get_db),
     _=Depends(auth.get_current_user),
 ):
-    query = db.query(models.SaleRecord)
+    query = db.query(models.ReturnRecord)
     if date_from:
-        query = query.filter(models.SaleRecord.record_date >= date_from)
+        query = query.filter(models.ReturnRecord.record_date >= date_from)
     if date_to:
-        query = query.filter(models.SaleRecord.record_date <= date_to)
+        query = query.filter(models.ReturnRecord.record_date <= date_to)
     if product_id:
-        query = query.filter(models.SaleRecord.product_id == product_id)
+        query = query.filter(models.ReturnRecord.product_id == product_id)
 
     total = query.count()
     records = (
-        query.order_by(models.SaleRecord.record_date.desc(), models.SaleRecord.id.desc())
+        query.order_by(models.ReturnRecord.record_date.desc(), models.ReturnRecord.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
         .all()
     )
-
     total_pages = max(1, (total + page_size - 1) // page_size)
-    return schemas.SaleListOut(
+    return schemas.ReturnListOut(
         items=[_to_out(r) for r in records], total=total, page=page, page_size=page_size, total_pages=total_pages
     )
 
 
-@router.post("/", response_model=schemas.SaleOut)
-def create_sale(
-    payload: schemas.SaleCreate,
+@router.post("/", response_model=schemas.ReturnOut)
+def create_return(
+    payload: schemas.ReturnCreate,
     db: Session = Depends(get_db),
     current_user=Depends(auth.get_current_user),
 ):
     product = db.query(models.Product).filter(models.Product.id == payload.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Товар табылган жок")
-
-    produced = db.query(func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0)).filter(
-        models.ProductionRecord.product_id == payload.product_id
-    ).scalar()
-    sold = db.query(func.coalesce(func.sum(models.SaleRecord.quantity), 0.0)).filter(
-        models.SaleRecord.product_id == payload.product_id
-    ).scalar()
-    returned = db.query(func.coalesce(func.sum(models.ReturnRecord.quantity), 0.0)).filter(
-        models.ReturnRecord.product_id == payload.product_id
-    ).scalar()
-    current_stock = float(produced) + float(returned) - float(sold)
-    if payload.quantity > current_stock:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Жетишсиз калдык! Кампада {current_stock} {product.unit} гана бар",
-        )
-
-    record = models.SaleRecord(
+    record = models.ReturnRecord(
         product_id=payload.product_id,
         quantity=payload.quantity,
-        price=payload.price,
         customer=payload.customer,
         record_date=payload.record_date or local_today(),
         note=payload.note,
@@ -101,8 +80,8 @@ def create_sale(
 
 
 @router.delete("/{record_id}")
-def delete_sale(record_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user)):
-    record = db.query(models.SaleRecord).filter(models.SaleRecord.id == record_id).first()
+def delete_return(record_id: int, db: Session = Depends(get_db), current_user=Depends(auth.get_current_user)):
+    record = db.query(models.ReturnRecord).filter(models.ReturnRecord.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Жазуу табылган жок")
     if current_user.role != models.UserRole.admin and record.created_by != current_user.id:

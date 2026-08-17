@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Package, Factory, Receipt, Wallet, ArrowUp, ArrowDown, Plus } from "lucide-react";
+import { Package, Factory, Receipt, Wallet, ArrowUp, ArrowDown, Undo2, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../api";
-import { DashboardSummary } from "../types";
+import { DashboardSummary, ReportRow } from "../types";
 import { useAuth } from "../context/AuthContext";
 
 const StatCard: React.FC<{
@@ -26,12 +26,30 @@ const stockStatus = (stock: number, minimum: number, t: (k: string) => string) =
   return { label: t("dashboard.stock.ok"), tone: "bg-sprout-100 text-sprout-700" };
 };
 
+const monthStartStr = () => {
+  const d = new Date();
+  d.setDate(1);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${yyyy}-${mm}-01`;
+};
+const todayStr = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [monthRows, setMonthRows] = useState<ReportRow[]>([]);
+  const [monthLoading, setMonthLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
@@ -45,8 +63,24 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const loadMonth = async () => {
+    setMonthLoading(true);
+    try {
+      // Full month range, aggregated per product — this is the SAME query the Reports
+      // page uses, so numbers here always match Reports exactly. Every product that had
+      // any activity this month is included, not just a subset.
+      const res = await api.get<ReportRow[]>("/reports/summary", {
+        params: { date_from: monthStartStr(), date_to: todayStr(), group_by: "month" },
+      });
+      setMonthRows(res.data);
+    } finally {
+      setMonthLoading(false);
+    }
+  };
+
   useEffect(() => {
     load();
+    loadMonth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -68,14 +102,24 @@ const Dashboard: React.FC = () => {
 
   const lowStock = data.low_stock_products.filter((p) => p.stock <= p.minimum_stock);
 
+  // Totals across ALL products for the month — not limited to any single product or page.
+  const monthProduced = monthRows.reduce((s, r) => s + r.produced, 0);
+  const monthSold = monthRows.reduce((s, r) => s + r.sold, 0);
+  const monthReturned = monthRows.reduce((s, r) => s + (r.returned || 0), 0);
+  const monthRevenue = monthRows.reduce((s, r) => s + r.revenue, 0);
+
+  const topProducts = [...monthRows]
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
   return (
     <div>
-      <div className="mb-6 sm:mb-7 animate-fade-up flex items-center gap-1.5">
+      <div className="mb-6 sm:mb-7 animate-fade-up">
         <h1 className="font-display text-xl sm:text-2xl font-bold text-ink-900">
           {t("dashboard.greeting", { name: user?.full_name })}
         </h1>
+        <p className="text-sm text-ink-400 mt-1">{t("dashboard.subtitle")}</p>
       </div>
-      <p className="text-sm text-ink-400 -mt-5 sm:-mt-6 mb-6">{t("dashboard.subtitle")}</p>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 stagger">
         <StatCard label={t("dashboard.activeProducts")} icon={Package} tint="bg-sprout-50 text-sprout-600">
@@ -101,6 +145,56 @@ const Dashboard: React.FC = () => {
             {data.today_revenue.toLocaleString()} {t("dashboard.sum")}
           </div>
         </StatCard>
+      </div>
+
+      {/* ---------- Month-to-date summary (matches Reports page totals exactly) ---------- */}
+      <div className="card-soft p-5 mb-6 animate-fade-up">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={18} className="text-sprout-600" />
+          <h2 className="font-display font-semibold text-ink-900">{t("dashboard.monthTitle")}</h2>
+        </div>
+        {monthLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-16 skeleton rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="bg-cream-50 rounded-xl p-3 text-center">
+                <div className="text-[10px] uppercase tracking-wide text-ink-400">{t("dashboard.monthProduced")}</div>
+                <div className="font-mono font-bold text-sprout-600 mt-1">{monthProduced.toLocaleString()}</div>
+              </div>
+              <div className="bg-cream-50 rounded-xl p-3 text-center">
+                <div className="text-[10px] uppercase tracking-wide text-ink-400">{t("dashboard.monthSold")}</div>
+                <div className="font-mono font-bold text-gold-600 mt-1">{monthSold.toLocaleString()}</div>
+              </div>
+              <div className="bg-cream-50 rounded-xl p-3 text-center">
+                <div className="text-[10px] uppercase tracking-wide text-ink-400">{t("dashboard.monthReturned")}</div>
+                <div className="font-mono font-bold text-plum-500 mt-1">{monthReturned.toLocaleString()}</div>
+              </div>
+              <div className="bg-cream-50 rounded-xl p-3 text-center">
+                <div className="text-[10px] uppercase tracking-wide text-ink-400">{t("dashboard.monthRevenue")}</div>
+                <div className="font-mono font-bold text-ink-900 mt-1">{monthRevenue.toLocaleString()} {t("dashboard.sum")}</div>
+              </div>
+            </div>
+
+            {topProducts.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-ink-500 mb-2">{t("dashboard.topProducts")}</div>
+                <div className="space-y-1.5">
+                  {topProducts.map((r) => (
+                    <div key={r.product_id} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg bg-cream-50">
+                      <span className="text-ink-700 font-medium truncate pr-2">{r.product_name}</span>
+                      <span className="font-mono text-ink-600 shrink-0">{r.revenue.toLocaleString()} {t("dashboard.sum")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
