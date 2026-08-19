@@ -17,15 +17,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Decodes the JWT payload locally (no network call) so we can check its
+// expiry instantly, instead of waiting on a round-trip to the server with
+// a token we already know is dead.
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const payloadBase64 = token.split(".")[1];
+    const payload = JSON.parse(atob(payloadBase64.replace(/-/g, "+").replace(/_/g, "/")));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    // If we can't even parse it, treat it as expired/invalid.
+    return true;
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const stored = localStorage.getItem("user");
-    if (stored) {
+
+    if (token && stored && !isTokenExpired(token)) {
       setUser(JSON.parse(stored));
+    } else if (token || stored) {
+      // Stale/expired session — clear it immediately, no network wait.
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     }
+
     setLoading(false);
   }, []);
 

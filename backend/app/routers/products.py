@@ -100,19 +100,13 @@ def delete_product(product_id: int, db: Session = Depends(get_db), _=Depends(aut
     if not product:
         raise HTTPException(status_code=404, detail="Товар табылган жок")
 
-    # If the product has any history (production/sales/returns), a hard delete would
-    # break those records and corrupt reports. Archive it instead of removing it.
-    has_records = (
-        db.query(models.ProductionRecord).filter(models.ProductionRecord.product_id == product_id).first() is not None
-        or db.query(models.SaleRecord).filter(models.SaleRecord.product_id == product_id).first() is not None
-        or db.query(models.ReturnRecord).filter(models.ReturnRecord.product_id == product_id).first() is not None
-    )
-
-    if has_records:
-        product.is_active = False
-        db.commit()
-        return {"ok": True, "hard_deleted": False}
+    # Full delete: removes the product together with its entire operation history
+    # (production/sales/returns records). This is a deliberate, irreversible action —
+    # if the admin just wants to hide a product, they should deactivate it instead.
+    db.query(models.ProductionRecord).filter(models.ProductionRecord.product_id == product_id).delete()
+    db.query(models.SaleRecord).filter(models.SaleRecord.product_id == product_id).delete()
+    db.query(models.ReturnRecord).filter(models.ReturnRecord.product_id == product_id).delete()
 
     db.delete(product)
     db.commit()
-    return {"ok": True, "hard_deleted": True}
+    return {"ok": True}

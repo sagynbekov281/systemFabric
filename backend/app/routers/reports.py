@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
+from datetime import timezone, timedelta
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -9,6 +10,15 @@ from ..database import get_db
 from ..timezone_utils import local_today
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
+
+BISHKEK_TZ = timezone(timedelta(hours=6))
+
+
+def _local_time_str(dt_utc, record_date, today):
+    if dt_utc is None or record_date != today:
+        return ""
+    aware = dt_utc.replace(tzinfo=timezone.utc).astimezone(BISHKEK_TZ)
+    return aware.strftime("%H:%M")
 
 
 @router.get("/dashboard", response_model=schemas.DashboardSummary)
@@ -25,6 +35,18 @@ def dashboard(db: Session = Depends(get_db), _=Depends(auth.get_current_user)):
         func.coalesce(func.sum(models.SaleRecord.quantity * func.coalesce(models.SaleRecord.price, 0)), 0.0),
     ).filter(models.SaleRecord.record_date == today).first() or (0.0, 0.0)
     today_sold, today_revenue = today_sold_row
+
+    # ---------- Бүгүнкү өндүрүш, бирдиги боюнча бөлүнүп (литр/кг/даана кошулбайт) ----------
+    produced_today_rows = (
+        db.query(models.Product.unit, func.coalesce(func.sum(models.ProductionRecord.quantity), 0.0))
+        .join(models.Product, models.Product.id == models.ProductionRecord.product_id)
+        .filter(models.ProductionRecord.record_date == today)
+        .group_by(models.Product.unit)
+        .all()
+    )
+    today_produced_by_unit = [
+        schemas.UnitQuantity(unit=unit, quantity=float(qty)) for unit, qty in produced_today_rows
+    ]
 
     product_ids = [p.id for p in products]
 
@@ -60,15 +82,67 @@ def dashboard(db: Session = Depends(get_db), _=Depends(auth.get_current_user)):
         item.stock = stock
         stock_list.append(item)
 
-    low_stock = sorted(stock_list, key=lambda x: x.stock)[:5]
+    # Минималдуу деңгээлден ылдый/барабар БАРДЫК товарлар — 5кө чектелген эмес,
+    # ошондуктан "баарын көрсөтүү" толук тизмени көрсөтө алат.
+    low_stock = sorted(
+        (p for p in stock_list if p.stock <= (p.minimum_stock or 0)),
+        key=lambda x: x.stock,
+    )
+
+    # ---------- Акыркы операциялар (өндүрүш + сатуу, жаңысынан баштап) ----------
+    recent_limit = 50
+    recent_production = (
+        db.query(models.ProductionRecord)
+        .order_by(models.ProductionRecord.created_at.desc())
+        .limit(recent_limit)
+        .all()
+    )
+    recent_sales = (
+        db.query(models.SaleRecord)
+        .order_by(models.SaleRecord.created_at.desc())
+        .limit(recent_limit)
+        .all()
+    )
+
+    product_by_id = {p.id: p for p in db.query(models.Product).all()}
+    user_by_id = {u.id: u for u in db.query(models.User).all()}
+
+    combined = []
+    for r in recent_production:
+        product = product_by_id.get(r.product_id)
+        user = user_by_id.get(r.created_by)
+        combined.append((r.created_at, schemas.RecentOperation(
+            time=_local_time_str(r.created_at, r.record_date, today),
+            product_name=product.name if product else "?",
+            quantity=r.quantity,
+            unit=product.unit if product else "",
+            type="production",
+            user_name=user.full_name if user else "?",
+        )))
+    for r in recent_sales:
+        product = product_by_id.get(r.product_id)
+        user = user_by_id.get(r.created_by)
+        combined.append((r.created_at, schemas.RecentOperation(
+            time=_local_time_str(r.created_at, r.record_date, today),
+            product_name=product.name if product else "?",
+            quantity=r.quantity,
+            unit=product.unit if product else "",
+            type="sale",
+            user_name=user.full_name if user else "?",
+        )))
+
+    combined.sort(key=lambda x: x[0], reverse=True)
+    recent_operations = [op for _, op in combined[:recent_limit]]
 
     return schemas.DashboardSummary(
         total_products=total_products,
         today_produced=float(today_produced),
+        today_produced_by_unit=today_produced_by_unit,
         today_sold=float(today_sold),
         today_revenue=float(today_revenue),
         total_stock=total_stock,
         low_stock_products=low_stock,
+        recent_operations=recent_operations,
     )
 
 

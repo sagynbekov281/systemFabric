@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Package, Factory, Receipt, Wallet, ArrowUp, ArrowDown, Undo2, TrendingUp } from "lucide-react";
+import { Package, Factory, Receipt, Wallet, ArrowUp, ArrowDown, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../api";
 import { DashboardSummary, ReportRow } from "../types";
 import { useAuth } from "../context/AuthContext";
+import Modal from "../components/Modal";
 
 const StatCard: React.FC<{
   label: string;
@@ -41,6 +42,28 @@ const todayStr = () => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+const OperationRow: React.FC<{ op: DashboardSummary["recent_operations"][number] }> = ({ op }) => (
+  <div className="flex items-center gap-3 py-2.5 text-sm">
+    <div
+      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+        op.type === "production" ? "bg-sprout-50 text-sprout-600" : "bg-gold-50 text-gold-600"
+      }`}
+    >
+      {op.type === "production" ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+    </div>
+    <div className="min-w-0 flex-1">
+      <div className="text-ink-700 font-medium truncate">{op.product_name}</div>
+      <div className="text-[12px] text-ink-400">
+        {op.time} · {op.user_name}
+      </div>
+    </div>
+    <div className={`font-display font-semibold shrink-0 ${op.type === "production" ? "text-sprout-600" : "text-gold-600"}`}>
+      {op.type === "production" ? "+" : "-"}
+      {op.quantity} {op.unit}
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -50,6 +73,9 @@ const Dashboard: React.FC = () => {
 
   const [monthRows, setMonthRows] = useState<ReportRow[]>([]);
   const [monthLoading, setMonthLoading] = useState(true);
+
+  const [opsModalOpen, setOpsModalOpen] = useState(false);
+  const [stockModalOpen, setStockModalOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -66,9 +92,6 @@ const Dashboard: React.FC = () => {
   const loadMonth = async () => {
     setMonthLoading(true);
     try {
-      // Full month range, aggregated per product — this is the SAME query the Reports
-      // page uses, so numbers here always match Reports exactly. Every product that had
-      // any activity this month is included, not just a subset.
       const res = await api.get<ReportRow[]>("/reports/summary", {
         params: { date_from: monthStartStr(), date_to: todayStr(), group_by: "month" },
       });
@@ -100,9 +123,11 @@ const Dashboard: React.FC = () => {
     ? data.today_produced_by_unit
     : [{ unit: "", quantity: data.today_produced }];
 
-  const lowStock = data.low_stock_products.filter((p) => p.stock <= p.minimum_stock);
+  const allLowStock = data.low_stock_products;
+  const lowStockPreview = allLowStock.slice(0, 5);
+  const allOperations = data.recent_operations || [];
+  const operationsPreview = allOperations.slice(0, 8);
 
-  // Totals across ALL products for the month — not limited to any single product or page.
   const monthProduced = monthRows.reduce((s, r) => s + r.produced, 0);
   const monthSold = monthRows.reduce((s, r) => s + r.sold, 0);
   const monthReturned = monthRows.reduce((s, r) => s + (r.returned || 0), 0);
@@ -147,7 +172,7 @@ const Dashboard: React.FC = () => {
         </StatCard>
       </div>
 
-      {/* ---------- Month-to-date summary (matches Reports page totals exactly) ---------- */}
+      {/* ---------- Month-to-date summary ---------- */}
       <div className="card-soft p-5 mb-6 animate-fade-up">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp size={18} className="text-sprout-600" />
@@ -198,43 +223,35 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
+        {/* ---------- Recent operations ---------- */}
         <div className="card-soft p-5 animate-fade-up">
           <h2 className="font-display font-semibold text-ink-900 mb-3">{t("dashboard.recentOperations")}</h2>
           <div className="divide-y divide-ink-50">
-            {(data.recent_operations || []).slice(0, 8).map((op, idx) => (
-              <div key={idx} className="flex items-center gap-3 py-2.5 text-sm">
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-150 ${
-                    op.type === "production" ? "bg-sprout-50 text-sprout-600" : "bg-gold-50 text-gold-600"
-                  }`}
-                >
-                  {op.type === "production" ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-ink-700 font-medium truncate">{op.product_name}</div>
-                  <div className="text-[12px] text-ink-400">
-                    {op.time} · {op.user_name}
-                  </div>
-                </div>
-                <div className={`font-display font-semibold shrink-0 ${op.type === "production" ? "text-sprout-600" : "text-gold-600"}`}>
-                  {op.type === "production" ? "+" : "-"}
-                  {op.quantity} {op.unit}
-                </div>
-              </div>
+            {operationsPreview.map((op, idx) => (
+              <OperationRow key={idx} op={op} />
             ))}
-            {(!data.recent_operations || data.recent_operations.length === 0) && (
+            {allOperations.length === 0 && (
               <div className="text-sm text-ink-400 py-4">{t("dashboard.noOperations")}</div>
             )}
           </div>
+          {allOperations.length > operationsPreview.length && (
+            <button
+              onClick={() => setOpsModalOpen(true)}
+              className="mt-3 text-sm font-semibold text-sprout-600 hover:underline"
+            >
+              {t("dashboard.viewAll")}
+            </button>
+          )}
         </div>
 
+        {/* ---------- Low stock ---------- */}
         <div className="card-soft p-5 animate-fade-up">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display font-semibold text-ink-900">{t("dashboard.lowStock")}</h2>
-            <span className="pill-tag bg-cream-100 text-ink-500">{lowStock.length}</span>
+            <span className="pill-tag bg-cream-100 text-ink-500">{allLowStock.length}</span>
           </div>
           <div className="space-y-2">
-            {lowStock.map((p) => {
+            {lowStockPreview.map((p) => {
               const status = stockStatus(p.stock, p.minimum_stock, t);
               return (
                 <div
@@ -248,12 +265,67 @@ const Dashboard: React.FC = () => {
                 </div>
               );
             })}
-            {lowStock.length === 0 && (
+            {allLowStock.length === 0 && (
               <div className="text-sm text-ink-400 py-2">{t("dashboard.allSufficient")}</div>
             )}
           </div>
+          {allLowStock.length > lowStockPreview.length && (
+            <button
+              onClick={() => setStockModalOpen(true)}
+              className="mt-3 text-sm font-semibold text-sprout-600 hover:underline"
+            >
+              {t("dashboard.viewAll")}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* ---------- Modal: all recent operations ---------- */}
+      <Modal
+        open={opsModalOpen}
+        onClose={() => setOpsModalOpen(false)}
+        title={t("dashboard.recentOperations")}
+        footer={
+          <button className="btn-ghost" onClick={() => setOpsModalOpen(false)}>
+            {t("dashboard.back")}
+          </button>
+        }
+      >
+        <div className="divide-y divide-ink-50 max-h-[65vh] sm:max-h-[60vh] overflow-y-auto -mx-1 px-1">
+          {allOperations.map((op, idx) => (
+            <OperationRow key={idx} op={op} />
+          ))}
+        </div>
+      </Modal>
+
+      {/* ---------- Modal: all low-stock products ---------- */}
+      <Modal
+        open={stockModalOpen}
+        onClose={() => setStockModalOpen(false)}
+        title={t("dashboard.lowStock")}
+        footer={
+          <button className="btn-ghost" onClick={() => setStockModalOpen(false)}>
+            {t("dashboard.back")}
+          </button>
+        }
+      >
+        <div className="space-y-2 max-h-[65vh] sm:max-h-[60vh] overflow-y-auto -mx-1 px-1">
+          {allLowStock.map((p) => {
+            const status = stockStatus(p.stock, p.minimum_stock, t);
+            return (
+              <div
+                key={p.id}
+                className="flex items-center justify-between text-sm px-3.5 py-2.5 rounded-xl bg-cream-50"
+              >
+                <span className="text-ink-700 font-medium truncate pr-2">{p.name}</span>
+                <span className={`pill-tag shrink-0 ${status.tone}`}>
+                  {p.stock.toLocaleString()} {p.unit} · {status.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </Modal>
     </div>
   );
 };

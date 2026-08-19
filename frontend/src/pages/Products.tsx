@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Plus, Loader2, Power } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../api";
 import { Product, PaginatedResponse } from "../types";
@@ -109,13 +109,17 @@ const Products: React.FC = () => {
     setShowForm(true);
   };
 
+  const toggleActive = async (p: Product) => {
+    await api.put(`/products/${p.id}`, { is_active: !p.is_active });
+    load(page);
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
       await api.delete(`/products/${deleteTarget.id}`);
       setDeleteTarget(null);
-      // If we just deleted the last item on this page, step back a page
       const shouldStepBack = products.length === 1 && page > 1;
       load(shouldStepBack ? page - 1 : page);
     } finally {
@@ -229,15 +233,20 @@ const Products: React.FC = () => {
                         <button onClick={() => handleEdit(p)} className="btn-icon" aria-label={t("products.edit")}>
                           <Pencil size={15} />
                         </button>
-                        {p.is_active && (
-                          <button
-                            onClick={() => setDeleteTarget(p)}
-                            className="btn-icon hover:bg-clay-50 hover:text-clay-600"
-                            aria-label={t("products.delete")}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => toggleActive(p)}
+                          className="btn-icon"
+                          aria-label={p.is_active ? t("products.deactivate") : t("products.activate")}
+                        >
+                          <Power size={15} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(p)}
+                          className="btn-icon hover:bg-clay-50 hover:text-clay-600"
+                          aria-label={t("products.delete")}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -294,15 +303,20 @@ const Products: React.FC = () => {
                             <button onClick={() => handleEdit(p)} className="btn-icon" aria-label={t("products.edit")}>
                               <Pencil size={15} />
                             </button>
-                            {p.is_active && (
-                              <button
-                                onClick={() => setDeleteTarget(p)}
-                                className="btn-icon hover:bg-clay-50 hover:text-clay-600"
-                                aria-label={t("products.delete")}
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => toggleActive(p)}
+                              className="btn-icon"
+                              aria-label={p.is_active ? t("products.deactivate") : t("products.activate")}
+                            >
+                              <Power size={15} />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(p)}
+                              className="btn-icon hover:bg-clay-50 hover:text-clay-600"
+                              aria-label={t("products.delete")}
+                            >
+                              <Trash2 size={15} />
+                            </button>
                           </td>
                         )}
                       </tr>

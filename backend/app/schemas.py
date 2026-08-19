@@ -58,6 +58,8 @@ class ProductBase(BaseModel):
     name: str
     unit: str = "литр"
     description: Optional[str] = None
+    price: Optional[float] = None
+    minimum_stock: float = 10
 
 
 class ProductCreate(ProductBase):
@@ -68,6 +70,8 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     unit: Optional[str] = None
     description: Optional[str] = None
+    price: Optional[float] = None
+    minimum_stock: Optional[float] = None
     is_active: Optional[bool] = None
 
 
@@ -206,10 +210,26 @@ class ReportRow(BaseModel):
     revenue: float
 
 
+class UnitQuantity(BaseModel):
+    unit: str
+    quantity: float
+
+
+class RecentOperation(BaseModel):
+    time: str
+    product_name: str
+    quantity: float
+    unit: str
+    type: str
+    user_name: str
+
+
 class DashboardSummary(BaseModel):
     total_products: int
     today_produced: float
+    today_produced_by_unit: List[UnitQuantity] = []
     today_sold: float
     today_revenue: float
     total_stock: float
     low_stock_products: List[ProductWithStock] = []
+    recent_operations: List[RecentOperation] = []

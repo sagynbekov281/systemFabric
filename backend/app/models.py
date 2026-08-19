@@ -36,6 +36,8 @@ class Product(Base):
     name = Column(String(128), nullable=False, index=True)
     unit = Column(String(32), nullable=False, default="литр")
     description = Column(Text, nullable=True)
+    price = Column(Float, nullable=True)
+    minimum_stock = Column(Float, nullable=False, default=0)
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
